@@ -109,7 +109,7 @@ void suprridr_state::machine_reset()
  *
  *************************************/
 
-WRITE8_MEMBER(suprridr_state::nmi_enable_w)
+void suprridr_state::nmi_enable_w(uint8_t data)
 {
 	m_nmi_enable = data;
 }
@@ -129,7 +129,7 @@ INTERRUPT_GEN_MEMBER(suprridr_state::main_nmi_gen)
  *
  *************************************/
 
-WRITE8_MEMBER(suprridr_state::coin_lock_w)
+void suprridr_state::coin_lock_w(uint8_t data)
 {
 	/* cleared when 9 credits are hit, but never reset! */
 /*  machine().bookkeeping().coin_lockout_global_w(~data & 1); */
@@ -225,7 +225,7 @@ CUSTOM_INPUT_MEMBER(suprridr_state::control_r)
 
 static INPUT_PORTS_START( suprridr )
 	PORT_START("INPUTS")
-	PORT_BIT( 0xff, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, suprridr_state, control_r, nullptr)
+	PORT_BIT( 0xff, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(suprridr_state, control_r)
 
 	PORT_START("SYSTEM")
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_COIN1 )

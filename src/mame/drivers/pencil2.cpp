@@ -107,15 +107,15 @@ public:
 
 	void pencil2(machine_config &config);
 
-	DECLARE_CUSTOM_INPUT_MEMBER(printer_ready_r);
-	DECLARE_CUSTOM_INPUT_MEMBER(printer_ack_r);
+	DECLARE_READ_LINE_MEMBER(printer_ready_r);
+	DECLARE_READ_LINE_MEMBER(printer_ack_r);
 
 private:
-	DECLARE_WRITE8_MEMBER(port10_w);
-	DECLARE_WRITE8_MEMBER(port30_w);
-	DECLARE_WRITE8_MEMBER(port80_w);
-	DECLARE_WRITE8_MEMBER(portc0_w);
-	DECLARE_READ8_MEMBER(porte2_r);
+	void port10_w(u8 data);
+	void port30_w(u8 data);
+	void port80_w(u8 data);
+	void portc0_w(u8 data);
+	u8 porte2_r();
 	DECLARE_WRITE_LINE_MEMBER(write_centronics_ack);
 	DECLARE_WRITE_LINE_MEMBER(write_centronics_busy);
 	void io_map(address_map &map);
@@ -137,14 +137,14 @@ void pencil2_state::mem_map(address_map &map)
 	map(0x0000, 0x1fff).rom();
 	map(0x2000, 0x5fff).nopw();  // stop error log filling up
 	map(0x6000, 0x67ff).mirror(0x1800).ram();
-	//AM_RANGE(0x8000, 0xffff)      // mapped by the cartslot
+	//map(0x8000, 0xffff)      // mapped by the cartslot
 }
 
 void pencil2_state::io_map(address_map &map)
 {
 	map.unmap_value_high();
 	map.global_mask(0xff);
-	map(0x00, 0x0f).w("cent_data_out", FUNC(output_latch_device::bus_w));
+	map(0x00, 0x0f).w("cent_data_out", FUNC(output_latch_device::write));
 	map(0x10, 0x1f).w(FUNC(pencil2_state::port10_w));
 	map(0x30, 0x3f).w(FUNC(pencil2_state::port30_w));
 	map(0x80, 0x9f).w(FUNC(pencil2_state::port80_w));
@@ -163,27 +163,27 @@ void pencil2_state::io_map(address_map &map)
 	map(0xf2, 0xf2).portr("F2");
 }
 
-READ8_MEMBER( pencil2_state::porte2_r)
+u8 pencil2_state::porte2_r()
 {
 	return (m_cass->input() > 0.1) ? 0xff : 0x7f;
 }
 
-WRITE8_MEMBER( pencil2_state::port10_w )
+void pencil2_state::port10_w(u8 data)
 {
 	m_centronics->write_strobe(BIT(data, 0));
 }
 
-WRITE8_MEMBER( pencil2_state::port30_w )
+void pencil2_state::port30_w(u8 data)
 {
 	m_cass_state ^= 1;
 	m_cass->output( m_cass_state ? -1.0 : +1.0);
 }
 
-WRITE8_MEMBER( pencil2_state::port80_w )
+void pencil2_state::port80_w(u8 data)
 {
 }
 
-WRITE8_MEMBER( pencil2_state::portc0_w )
+void pencil2_state::portc0_w(u8 data)
 {
 }
 
@@ -192,7 +192,7 @@ WRITE_LINE_MEMBER( pencil2_state::write_centronics_busy )
 	m_centronics_busy = state;
 }
 
-CUSTOM_INPUT_MEMBER( pencil2_state::printer_ready_r )
+READ_LINE_MEMBER( pencil2_state::printer_ready_r )
 {
 	return m_centronics_busy;
 }
@@ -202,7 +202,7 @@ WRITE_LINE_MEMBER( pencil2_state::write_centronics_ack )
 	m_centronics_ack = state;
 }
 
-CUSTOM_INPUT_MEMBER( pencil2_state::printer_ack_r )
+READ_LINE_MEMBER( pencil2_state::printer_ack_r )
 {
 	return m_centronics_ack;
 }
@@ -216,10 +216,10 @@ static INPUT_PORTS_START( pencil2 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD ) PORT_CODE(KEYCODE_RIGHT)
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYBOARD ) PORT_CODE(KEYCODE_DOWN)
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_KEYBOARD ) PORT_CODE(KEYCODE_LEFT)
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, pencil2_state, printer_ready_r, " ")
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(pencil2_state, printer_ready_r)
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD ) PORT_NAME("Break") PORT_CODE(KEYCODE_END)
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, pencil2_state, printer_ack_r, " ")
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(pencil2_state, printer_ack_r)
 
 	PORT_START("E1")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_KEYBOARD ) PORT_CODE(KEYCODE_J) PORT_CHAR('J') PORT_CHAR('j') PORT_CHAR('@')
@@ -305,8 +305,13 @@ INPUT_PORTS_END
 
 void pencil2_state::machine_start()
 {
+
+	save_item(NAME(m_centronics_busy));
+	save_item(NAME(m_centronics_ack));
+	save_item(NAME(m_cass_state));
+
 	if (m_cart->exists())
-		m_maincpu->space(AS_PROGRAM).install_read_handler(0x8000, 0xffff, read8sm_delegate(FUNC(generic_slot_device::read_rom),(generic_slot_device*)m_cart));
+		m_maincpu->space(AS_PROGRAM).install_read_handler(0x8000, 0xffff, read8sm_delegate(*m_cart, FUNC(generic_slot_device::read_rom)));
 }
 
 void pencil2_state::pencil2(machine_config &config)
@@ -349,11 +354,11 @@ void pencil2_state::pencil2(machine_config &config)
 
 /* ROM definition */
 ROM_START( pencil2 )
-	ROM_REGION(0x10000, "maincpu", 0)
+	ROM_REGION(0x2000, "maincpu", 0)
 	ROM_LOAD( "mt.u4", 0x0000, 0x2000, CRC(338d7b59) SHA1(2f89985ac06971e00210ff992bf1e30a296d10e7) )
 ROM_END
 
 /* Driver */
 
 //    YEAR  NAME     PARENT  COMPAT  MACHINE  INPUT    CLASS          INIT        COMPANY    FULLNAME     FLAGS
-COMP( 1983, pencil2, 0,      0,      pencil2, pencil2, pencil2_state, empty_init, "Hanimex", "Pencil II", 0 )
+COMP( 1983, pencil2, 0,      0,      pencil2, pencil2, pencil2_state, empty_init, "Hanimex", "Pencil II", MACHINE_SUPPORTS_SAVE )

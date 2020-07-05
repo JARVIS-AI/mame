@@ -165,23 +165,23 @@ http://www.z88forever.org.uk/zxplus3e/
 /* TS2048 specific functions */
 
 
-READ8_MEMBER( timex_state::ts2068_port_f4_r )
+uint8_t timex_state::ts2068_port_f4_r()
 {
 	return m_port_f4_data;
 }
 
-WRITE8_MEMBER( timex_state::ts2068_port_f4_w )
+void timex_state::ts2068_port_f4_w(uint8_t data)
 {
 	m_port_f4_data = data;
 	ts2068_update_memory();
 }
 
-READ8_MEMBER( timex_state::ts2068_port_ff_r )
+uint8_t timex_state::ts2068_port_ff_r()
 {
 	return m_port_ff_data;
 }
 
-WRITE8_MEMBER( timex_state::ts2068_port_ff_w )
+void timex_state::ts2068_port_ff_w(offs_t offset, uint8_t data)
 {
 		/* Bits 0-2 Video Mode Select
 		   Bits 3-5 64 column mode ink/paper selection
@@ -565,7 +565,7 @@ MACHINE_RESET_MEMBER(timex_state,ts2068)
 /* TC2048 specific functions */
 
 
-WRITE8_MEMBER( timex_state::tc2048_port_ff_w )
+void timex_state::tc2048_port_ff_w(offs_t offset, uint8_t data)
 {
 	m_port_ff_data = data;
 	logerror("Port %04x write %02x\n", offset, data);
@@ -694,7 +694,7 @@ void timex_state::ts2068(machine_config &config)
 	m_maincpu->set_addrmap(AS_PROGRAM, &timex_state::ts2068_mem);
 	m_maincpu->set_addrmap(AS_IO, &timex_state::ts2068_io);
 	m_maincpu->set_vblank_int("screen", FUNC(timex_state::spec_interrupt));
-	config.m_minimum_quantum = attotime::from_hz(60);
+	config.set_maximum_quantum(attotime::from_hz(60));
 
 	MCFG_MACHINE_RESET_OVERRIDE(timex_state, ts2068 )
 
@@ -713,10 +713,11 @@ void timex_state::ts2068(machine_config &config)
 	AY8912(config.replace(), "ay8912", XTAL(14'112'000)/8).add_route(ALL_OUTPUTS, "mono", 0.25);        /* From Schematic; 1.764 MHz */
 
 	/* cartridge */
-	GENERIC_CARTSLOT(config, "dockslot", generic_plain_slot, "timex_cart", "dck,bin").set_device_load(FUNC(timex_state::cart_load), this);
+	GENERIC_CARTSLOT(config, "dockslot", generic_plain_slot, "timex_cart", "dck,bin").set_device_load(FUNC(timex_state::cart_load));
 
 	/* Software lists */
 	SOFTWARE_LIST(config, "cart_list").set_original("timex_dock");
+	SOFTWARE_LIST(config, "cass_list_t").set_original("timex_cass");
 
 	/* internal ram */
 	m_ram->set_default_size("48K");
@@ -749,6 +750,9 @@ void timex_state::tc2048(machine_config &config)
 
 	/* internal ram */
 	m_ram->set_default_size("48K");
+
+	/* Software lists */
+	SOFTWARE_LIST(config, "cass_list_t").set_original("timex_cass");
 }
 
 

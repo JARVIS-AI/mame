@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
+<!--
+license:CC0
+-->
 <mamelayout version="2">
 
-<!-- NOTE: no chesspieces simulation here, Novag MK I didn't have a built-in chessboard -->
+<!-- NOTE: no chesspieces simulation here -->
 
 <!-- define elements -->
 
@@ -15,14 +18,8 @@
 	</element>
 
 	<element name="hl" defstate="0">
-		<text string=" ">
-			<bounds x="0.0" y="0.0" width="1.0" height="1.0" />
-			<color red="0.0" green="0.0" blue="0.0" />
-		</text>
-		<rect state="1">
-			<bounds x="0.0" y="0.0" width="1.0" height="1.0" />
-			<color red="0.0" green="0.0" blue="0.0" />
-		</rect>
+		<text string=" "/>
+		<rect state="1"><color red="0" green="0" blue="0" /></rect>
 	</element>
 
 	<element name="reset" defstate="0">

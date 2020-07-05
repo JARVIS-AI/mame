@@ -96,7 +96,7 @@ with the following code:
  *
  *************************************/
 
-READ8_MEMBER(fromance_state::fromance_busycheck_main_r)
+uint8_t fromance_state::fromance_busycheck_main_r()
 {
 	/* set a timer to force synchronization after the read */
 	machine().scheduler().synchronize();
@@ -108,7 +108,7 @@ READ8_MEMBER(fromance_state::fromance_busycheck_main_r)
 }
 
 
-READ8_MEMBER(fromance_state::fromance_busycheck_sub_r)
+uint8_t fromance_state::fromance_busycheck_sub_r()
 {
 	if (m_sublatch->pending_r())
 		return 0xff;        // standby
@@ -124,7 +124,7 @@ READ8_MEMBER(fromance_state::fromance_busycheck_sub_r)
  *
  *************************************/
 
-WRITE8_MEMBER(fromance_state::fromance_rombank_w)
+void fromance_state::fromance_rombank_w(uint8_t data)
 {
 	membank("bank1")->set_entry(data);
 }
@@ -137,7 +137,7 @@ WRITE8_MEMBER(fromance_state::fromance_rombank_w)
  *
  *************************************/
 
-WRITE8_MEMBER(fromance_state::fromance_adpcm_reset_w)
+void fromance_state::fromance_adpcm_reset_w(uint8_t data)
 {
 	m_adpcm_reset = (data & 0x01);
 	m_vclk_left = 0;
@@ -146,7 +146,7 @@ WRITE8_MEMBER(fromance_state::fromance_adpcm_reset_w)
 }
 
 
-WRITE8_MEMBER(fromance_state::fromance_adpcm_w)
+void fromance_state::fromance_adpcm_w(uint8_t data)
 {
 	m_adpcm_data = data;
 	m_vclk_left = 2;
@@ -162,7 +162,7 @@ WRITE_LINE_MEMBER(fromance_state::fromance_adpcm_int)
 	/* clock the data through */
 	if (m_vclk_left)
 	{
-		m_msm->write_data(m_adpcm_data >> 4);
+		m_msm->data_w(m_adpcm_data >> 4);
 		m_adpcm_data <<= 4;
 		m_vclk_left--;
 	}
@@ -180,13 +180,13 @@ WRITE_LINE_MEMBER(fromance_state::fromance_adpcm_int)
  *
  *************************************/
 
-WRITE8_MEMBER(fromance_state::fromance_portselect_w)
+void fromance_state::fromance_portselect_w(uint8_t data)
 {
 	m_portselect = data;
 }
 
 
-READ8_MEMBER(fromance_state::fromance_keymatrix_r)
+uint8_t fromance_state::fromance_keymatrix_r()
 {
 	int ret = 0xff;
 
@@ -212,7 +212,7 @@ READ8_MEMBER(fromance_state::fromance_keymatrix_r)
  *
  *************************************/
 
-WRITE8_MEMBER(fromance_state::fromance_coinctr_w)
+void fromance_state::fromance_coinctr_w(uint8_t data)
 {
 	//
 }
@@ -947,11 +947,11 @@ void fromance_state::nekkyoku(machine_config &config)
 void fromance_state::idolmj(machine_config &config)
 {
 	/* basic machine hardware */
-	Z80(config, m_maincpu, XTAL(12'000'000) / 2);   /* 6.00 Mhz ? */
+	Z80(config, m_maincpu, 12_MHz_XTAL / 2);   /* 6.00 Mhz ? */
 	m_maincpu->set_addrmap(AS_PROGRAM, &fromance_state::fromance_main_map);
 	m_maincpu->set_vblank_int("screen", FUNC(fromance_state::irq0_line_hold));
 
-	Z80(config, m_subcpu, XTAL(12'000'000) / 2);    /* 6.00 Mhz ? */
+	Z80(config, m_subcpu, 12_MHz_XTAL / 2);    /* 6.00 Mhz ? */
 	m_subcpu->set_addrmap(AS_PROGRAM, &fromance_state::fromance_sub_map);
 	m_subcpu->set_addrmap(AS_IO, &fromance_state::idolmj_sub_io_map);
 
@@ -980,7 +980,7 @@ void fromance_state::idolmj(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
 
-	YM2149(config, "aysnd", 12000000/6).add_route(ALL_OUTPUTS, "mono", 0.15);
+	YM2149(config, "aysnd", 12_MHz_XTAL / 6).add_route(ALL_OUTPUTS, "mono", 0.15);
 
 	MSM5205(config, m_msm, 384000);
 	m_msm->vck_legacy_callback().set(FUNC(fromance_state::fromance_adpcm_int)); /* IRQ handler */

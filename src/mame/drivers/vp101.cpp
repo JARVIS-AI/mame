@@ -101,7 +101,7 @@ Small outline design for easy kit retrofitting of existing cabinets.
 
 #include "emu.h"
 #include "cpu/mips/mips3.h"
-#include "machine/ataintf.h"
+#include "bus/ata/ataintf.h"
 #include "machine/nvram.h"
 #include "imagedev/harddriv.h"
 #include "screen.h"
@@ -124,23 +124,23 @@ private:
 	virtual void machine_reset() override;
 	virtual void machine_start() override;
 
-	DECLARE_READ32_MEMBER(tty_ready_r);
-	DECLARE_WRITE32_MEMBER(tty_w);
-	DECLARE_READ32_MEMBER(test_r) { return 0xffffffff; }
+	uint32_t tty_ready_r();
+	void tty_w(uint32_t data);
+	uint32_t test_r() { return 0xffffffff; }
 
-	DECLARE_READ32_MEMBER(pic_r);
-	DECLARE_WRITE32_MEMBER(pic_w);
+	uint32_t pic_r();
+	void pic_w(uint32_t data);
 
-	DECLARE_WRITE32_MEMBER(dmaaddr_w);
+	void dmaaddr_w(uint32_t data);
 
 	DECLARE_WRITE_LINE_MEMBER(dmarq_w);
 
-	DECLARE_READ32_MEMBER(tty_4925_rdy_r) { return 0x2; }
+	uint32_t tty_4925_rdy_r() { return 0x2; }
 
-	DECLARE_READ32_MEMBER(spi_status_r) { return 0x8007; }
+	uint32_t spi_status_r() { return 0x8007; }
 
-	DECLARE_READ32_MEMBER(spi_r);
-	DECLARE_WRITE32_MEMBER(spi_w);
+	uint32_t spi_r();
+	void spi_w(uint32_t data);
 
 	uint32_t screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
 	uint32_t vp50_screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
@@ -175,7 +175,7 @@ void vp10x_state::machine_start()
 //  m_maincpu->add_fastram(0x00000000, 0x03ffffff, false, m_mainram);
 }
 
-WRITE32_MEMBER(vp10x_state::dmaaddr_w)
+void vp10x_state::dmaaddr_w(uint32_t data)
 {
 	m_dma_ptr = (data & 0x07ffffff);
 }
@@ -204,7 +204,7 @@ WRITE_LINE_MEMBER(vp10x_state::dmarq_w)
 	}
 }
 
-READ32_MEMBER(vp10x_state::pic_r)
+uint32_t vp10x_state::pic_r()
 {
 	static const uint8_t vers[5] = { 0x00, 0x01, 0x00, 0x00, 0x00 };
 	static const uint8_t serial[10] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a };
@@ -226,7 +226,7 @@ READ32_MEMBER(vp10x_state::pic_r)
 	return 0;
 }
 
-WRITE32_MEMBER(vp10x_state::pic_w)
+void vp10x_state::pic_w(uint32_t data)
 {
 	//printf("%02x to pic_cmd\n", data&0xff);
 	if ((data & 0xff) == 0)
@@ -237,12 +237,12 @@ WRITE32_MEMBER(vp10x_state::pic_w)
 	pic_state = 0;
 }
 
-READ32_MEMBER(vp10x_state::spi_r)
+uint32_t vp10x_state::spi_r()
 {
 	return 0xffffffff;
 }
 
-WRITE32_MEMBER(vp10x_state::spi_w)
+void vp10x_state::spi_w(uint32_t data)
 {
 //  printf("%d to SPI select\n", data);
 	m_spi_select = data;
@@ -292,12 +292,12 @@ uint32_t vp10x_state::vp50_screen_update(screen_device &screen, bitmap_rgb32 &bi
 	return 0;
 }
 
-READ32_MEMBER(vp10x_state::tty_ready_r)
+uint32_t vp10x_state::tty_ready_r()
 {
 	return 0x60;    // must return &0x20 for output at tty_w to continue
 }
 
-WRITE32_MEMBER(vp10x_state::tty_w)  // set breakpoint at bfc01430 to catch when it's printing things
+void vp10x_state::tty_w(uint32_t data)  // set breakpoint at bfc01430 to catch when it's printing things
 {
 // uncomment to see startup messages - it says "RAM OK" and "EPI RSS Ver 4.5.1" followed by "<RSS active>" and then lots of dots
 // Special Forces also says "<inited tv_cap> = 00000032"
@@ -459,7 +459,7 @@ ROM_START(rhnation)
 	ROM_LOAD( "rhythm_nation_rev_3.1.5_m27v322.u13", 0x000000, 0x400000, CRC(456f043d) SHA1(cc166897fdbdaa3583e44816da9dfbbf303f5c61) )
 
 	ROM_REGION(0x80000, "pic", 0)       /* PIC18c242 program - read-protected, need dumped */
-	ROM_LOAD( " pic18c242-i-sp.u22", 0x000000, 0x80000, NO_DUMP )
+	ROM_LOAD( "pic18c242-i-sp.u22", 0x000000, 0x80000, NO_DUMP )
 
 	DISK_REGION( "ata:0:hdd:image" )
 	DISK_IMAGE_READONLY("rhn010104", 0, SHA1(5bc2e5817b29bf42ec483414242795fd76d749d9) )
@@ -467,6 +467,6 @@ ROM_END
 
 GAME( 2002,  specfrce,  0,          vp101,  vp101, vp10x_state, empty_init, ROT0, "ICE/Play Mechanix",    "Special Forces Elite Training (v01.02.00)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND )
 GAME( 2002,  specfrceo, specfrce,   vp101,  vp101, vp10x_state, empty_init, ROT0, "ICE/Play Mechanix",    "Special Forces Elite Training (v01.01.01)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND )
-GAME( 2003,  rhnation,  0,          vp50,   vp50,  vp10x_state, empty_init, ROT0, "ICE/Play Mechanix",    "Rhythm Nation (v01.00.04)",                    MACHINE_NOT_WORKING | MACHINE_NO_SOUND)
+GAME( 2003,  rhnation,  0,          vp50,   vp50,  vp10x_state, empty_init, ROT0, "ICE/Play Mechanix",    "Rhythm Nation (v01.00.04, boot v3.1.5)",    MACHINE_NOT_WORKING | MACHINE_NO_SOUND)
 GAME( 2004,  jnero,     0,          vp101,  vp101, vp10x_state, empty_init, ROT0, "ICE/Play Mechanix",    "Johnny Nero Action Hero (v01.01.08)",       MACHINE_NOT_WORKING | MACHINE_NO_SOUND )
 GAME( 2006,  zoofari,   0,          vp50,   vp50,  vp10x_state, empty_init, ROT0, "ICE/Play Mechanix",    "Zoofari",                                   MACHINE_NOT_WORKING | MACHINE_NO_SOUND)

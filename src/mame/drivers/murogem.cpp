@@ -138,7 +138,7 @@ private:
 
 	required_shared_ptr<uint8_t> m_videoram;
 
-	DECLARE_WRITE8_MEMBER(outport_w);
+	void outport_w(uint8_t data);
 	void murogem_palette(palette_device &palette) const;
 
 	uint32_t screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
@@ -146,7 +146,7 @@ private:
 };
 
 
-WRITE8_MEMBER(murogem_state::outport_w)
+void murogem_state::outport_w(uint8_t data)
 {
 /*
    It's a Delta-Sigma DAC (1-bit/Bitstream)
@@ -161,7 +161,6 @@ WRITE8_MEMBER(murogem_state::outport_w)
 
 void murogem_state::murogem_map(address_map &map)
 {
-	map(0x0000, 0x007f).ram();
 	map(0x4000, 0x4000).w("crtc", FUNC(mc6845_device::address_w));
 	map(0x4001, 0x4001).w("crtc", FUNC(mc6845_device::register_w));
 	map(0x5000, 0x5000).portr("IN0");

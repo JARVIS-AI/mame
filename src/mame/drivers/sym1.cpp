@@ -78,11 +78,11 @@ private:
 	DECLARE_WRITE_LINE_MEMBER(sym1_74145_output_3_w);
 	DECLARE_WRITE_LINE_MEMBER(sym1_74145_output_4_w);
 	DECLARE_WRITE_LINE_MEMBER(sym1_74145_output_5_w);
-	DECLARE_READ8_MEMBER(riot_a_r);
-	DECLARE_READ8_MEMBER(riot_b_r);
-	DECLARE_WRITE8_MEMBER(riot_a_w);
-	DECLARE_WRITE8_MEMBER(riot_b_w);
-	DECLARE_WRITE8_MEMBER(via3_a_w);
+	uint8_t riot_a_r();
+	uint8_t riot_b_r();
+	void riot_a_w(uint8_t data);
+	void riot_b_w(uint8_t data);
+	void via3_a_w(uint8_t data);
 
 	void sym1_map(address_map &map);
 
@@ -113,7 +113,7 @@ TIMER_CALLBACK_MEMBER(sym1_state::led_refresh)
 	m_digits[param] = m_riot_port_a;
 }
 
-READ8_MEMBER(sym1_state::riot_a_r)
+uint8_t sym1_state::riot_a_r()
 {
 	int data = 0x7f;
 
@@ -130,7 +130,7 @@ READ8_MEMBER(sym1_state::riot_a_r)
 	return data;
 }
 
-READ8_MEMBER(sym1_state::riot_b_r)
+uint8_t sym1_state::riot_b_r()
 {
 	int data = 0x3f;
 
@@ -155,7 +155,7 @@ READ8_MEMBER(sym1_state::riot_b_r)
 	return data;
 }
 
-WRITE8_MEMBER(sym1_state::riot_a_w)
+void sym1_state::riot_a_w(uint8_t data)
 {
 	logerror("%x: riot_a_w 0x%02x\n", m_maincpu->pc(), data);
 
@@ -163,7 +163,7 @@ WRITE8_MEMBER(sym1_state::riot_a_w)
 	m_riot_port_a = data;
 }
 
-WRITE8_MEMBER(sym1_state::riot_b_w)
+void sym1_state::riot_b_w(uint8_t data)
 {
 	logerror("%x: riot_b_w 0x%02x\n", m_maincpu->pc(), data);
 
@@ -252,7 +252,7 @@ INPUT_PORTS_END
     PA2: Write protect RAM 0x800-0xbff
     PA3: Write protect RAM 0xc00-0xfff
  */
-WRITE8_MEMBER( sym1_state::via3_a_w )
+void sym1_state::via3_a_w(uint8_t data)
 {
 	address_space &cpu0space = m_maincpu->space( AS_PROGRAM );
 
@@ -314,11 +314,11 @@ void sym1_state::sym1_map(address_map &map)
 	map(0x0800, 0x0bff).bankrw("bank3").share("ram_2k");
 	map(0x0c00, 0x0fff).bankrw("bank4").share("ram_3k");
 	map(0x8000, 0x8fff).rom().share("monitor"); // U20 Monitor ROM
-	map(0xa000, 0xa00f).rw("via1", FUNC(via6522_device::read), FUNC(via6522_device::write));  // U25 VIA #1
+	map(0xa000, 0xa00f).m("via1", FUNC(via6522_device::map));  // U25 VIA #1
 	map(0xa400, 0xa41f).m("riot", FUNC(mos6532_new_device::io_map));  // U27 RIOT
 	map(0xa600, 0xa67f).bankrw("bank5").share("riot_ram");   // U27 RIOT RAM
-	map(0xa800, 0xa80f).rw("via2", FUNC(via6522_device::read), FUNC(via6522_device::write));  // U28 VIA #2
-	map(0xac00, 0xac0f).rw("via3", FUNC(via6522_device::read), FUNC(via6522_device::write));  // U29 VIA #3
+	map(0xa800, 0xa80f).m("via2", FUNC(via6522_device::map));  // U28 VIA #2
+	map(0xac00, 0xac0f).m("via3", FUNC(via6522_device::map));  // U29 VIA #3
 	map(0xb000, 0xefff).rom();
 }
 

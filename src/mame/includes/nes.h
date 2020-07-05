@@ -48,31 +48,30 @@
 #define NES_BATTERY 0
 #define NES_WRAM 1
 
-// so that the NES and Famiclones (VT03 for example) can use some common functionality
 class nes_base_state : public driver_device
 {
 public:
-	nes_base_state(const machine_config &mconfig, device_type type, const char *tag)
-		: driver_device(mconfig, type, tag),
+	nes_base_state(const machine_config &mconfig, device_type type, const char *tag) :
+		driver_device(mconfig, type, tag),
 		m_maincpu(*this, "maincpu"),
 		m_ctrl1(*this, "ctrl1"),
 		m_ctrl2(*this, "ctrl2")
 	{ }
 
 	required_device<cpu_device> m_maincpu;
-	required_device<nes_control_port_device> m_ctrl1;
-	required_device<nes_control_port_device> m_ctrl2;
+	optional_device<nes_control_port_device> m_ctrl1;
+	optional_device<nes_control_port_device> m_ctrl2;
 
-	DECLARE_READ8_MEMBER(nes_in0_r);
-	DECLARE_READ8_MEMBER(nes_in1_r);
-	DECLARE_WRITE8_MEMBER(nes_in0_w);
+	uint8_t nes_in0_r();
+	uint8_t nes_in1_r();
+	void nes_in0_w(uint8_t data);
 };
 
 class nes_state : public nes_base_state
 {
 public:
-	nes_state(const machine_config &mconfig, device_type type, const char *tag)
-		: nes_base_state(mconfig, type, tag),
+	nes_state(const machine_config &mconfig, device_type type, const char *tag) :
+		nes_base_state(mconfig, type, tag),
 		m_ppu(*this, "ppu"),
 		m_screen(*this, "screen"),
 		m_exp(*this, "exp"),
@@ -84,10 +83,10 @@ public:
 	int nes_ppu_vidaccess(int address, int data);
 
 
-	DECLARE_READ8_MEMBER(fc_in0_r);
-	DECLARE_READ8_MEMBER(fc_in1_r);
-	DECLARE_WRITE8_MEMBER(fc_in0_w);
-	DECLARE_WRITE8_MEMBER(nes_vh_sprite_dma_w);
+	uint8_t fc_in0_r();
+	uint8_t fc_in1_r();
+	void fc_in0_w(uint8_t data);
+	void nes_vh_sprite_dma_w(address_space &space, uint8_t data);
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 	virtual void video_start() override;

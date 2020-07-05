@@ -44,16 +44,12 @@ public:
 	template<std::size_t Bit> auto write_p() { return m_write_p[Bit-3].bind(); }
 	template<std::size_t Bit> auto read_ad() { return m_read_ad[Bit].bind(); }
 
-	devcb_read8  m_read_p[4];
-	devcb_write8 m_write_p[4];
-	devcb_read8  m_read_ad[8];
-
-	DECLARE_READ8_MEMBER(ports_r);
-	DECLARE_WRITE8_MEMBER(ports_w);
-	DECLARE_READ8_MEMBER(adc_r);
-	DECLARE_WRITE8_MEMBER(adc_w);
-	DECLARE_READ8_MEMBER(intregs_r);
-	DECLARE_WRITE8_MEMBER(intregs_w);
+	uint8_t ports_r(offs_t offset);
+	void ports_w(offs_t offset, uint8_t data);
+	uint8_t adc_r(offs_t offset);
+	void adc_w(offs_t offset, uint8_t data);
+	uint8_t intregs_r(offs_t offset);
+	void intregs_w(offs_t offset, uint8_t data);
 
 	bool are_port_bits_output(uint8_t port, uint8_t mask) { return ((m_ddrs[port] & mask) == mask) ? true : false; }
 
@@ -72,6 +68,10 @@ protected:
 	uint8_t read_port(uint8_t offset);
 
 	void recalc_irqs();
+
+	devcb_read8::array<4>  m_read_p;
+	devcb_write8::array<4> m_write_p;
+	devcb_read8::array<8>  m_read_ad;
 
 	uint8_t m_ports[6], m_ddrs[6];
 	uint8_t m_intreq1, m_intreq2, m_intctrl1, m_intctrl2;

@@ -30,7 +30,7 @@ public:
 		, m_speaker(*this, "speaker")
 		, m_cassette(*this, "cassette")
 		, m_cart(*this, "cartslot")
-		, m_laser_file(*this, {FLOPPY_0, FLOPPY_1})
+		, m_laser_file(*this, "floppy%u", 0U)
 		, m_gfxdecode(*this, "gfxdecode")
 		, m_palette(*this, "palette")
 		, m_videoram(*this, "videoram")
@@ -54,17 +54,16 @@ protected:
 	virtual void machine_reset() override;
 
 private:
-	DECLARE_WRITE8_MEMBER(laser_bank_select_w);
-	DECLARE_WRITE8_MEMBER(laser_fdc_w);
-	DECLARE_WRITE8_MEMBER(laser_bg_mode_w);
-	DECLARE_WRITE8_MEMBER(laser_two_color_w);
-	DECLARE_READ8_MEMBER(laser_fdc_r);
+	void laser_fdc_w(offs_t offset, uint8_t data);
+	void laser_bg_mode_w(uint8_t data);
+	void laser_two_color_w(uint8_t data);
+	uint8_t laser_fdc_r(offs_t offset);
 	void vtech2_palette(palette_device &palette) const;
 	uint32_t screen_update_laser(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	INTERRUPT_GEN_MEMBER(vtech2_interrupt);
-	DECLARE_WRITE8_MEMBER(mmio_w);
-	DECLARE_READ8_MEMBER(mmio_r);
-	DECLARE_READ8_MEMBER(cart_r);
+	void mmio_w(uint8_t data);
+	uint8_t mmio_r(offs_t offset);
+	uint8_t cart_r(offs_t offset);
 	DECLARE_DEVICE_IMAGE_LOAD_MEMBER(cart_load);
 
 	void laser_get_track();

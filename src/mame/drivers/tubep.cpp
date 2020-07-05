@@ -103,14 +103,19 @@ TP-S.1 TP-S.2 TP-S.3 TP-B.1  8212 TP-B.2 TP-B.3          TP-B.4
 #include "emu.h"
 #include "includes/tubep.h"
 
-#include "cpu/m6800/m6800.h"
 #include "cpu/z80/z80.h"
 #include "cpu/m6805/m6805.h"
 #include "machine/74259.h"
-#include "machine/gen_latch.h"
 #include "sound/ay8910.h"
 #include "sound/msm5205.h"
 #include "speaker.h"
+
+#define LOG_IRQ (1U << 1)
+//#define VERBOSE (LOG_IRQ)
+
+#include "logmacro.h"
+
+#define LOGIRQ(...) LOGMASKED(LOG_IRQ, __VA_ARGS__)
 
 
 /*************************************
@@ -141,18 +146,13 @@ void tubep_state::tubep_main_map(address_map &map)
 }
 
 
-WRITE8_MEMBER(tubep_state::main_cpu_irq_line_clear_w)
+void tubep_state::main_cpu_irq_line_clear_w(uint8_t data)
 {
 	m_maincpu->set_input_line(0, CLEAR_LINE);
-	logerror("CPU#0 VBLANK int clear at scanline=%3i\n", m_curr_scanline);
+	LOGIRQ("CPU#0 VBLANK int clear at scanline=%3i\n", m_curr_scanline);
 	return;
 }
 
-
-WRITE8_MEMBER(tubep_state::tubep_soundlatch_w)
-{
-	m_sound_latch = (data&0x7f) | 0x80;
-}
 
 void tubep_state::tubep_main_portmap(address_map &map)
 {
@@ -167,7 +167,7 @@ void tubep_state::tubep_main_portmap(address_map &map)
 
 	map(0x80, 0x80).w(FUNC(tubep_state::main_cpu_irq_line_clear_w));
 	map(0xb0, 0xb7).w("mainlatch", FUNC(ls259_device::write_d0));
-	map(0xd0, 0xd0).w(FUNC(tubep_state::tubep_soundlatch_w));
+	map(0xd0, 0xd0).w(m_soundlatch, FUNC(generic_latch_8_device::write));
 }
 
 
@@ -178,10 +178,10 @@ void tubep_state::tubep_main_portmap(address_map &map)
  *
  *************************************/
 
-WRITE8_MEMBER(tubep_state::second_cpu_irq_line_clear_w)
+void tubep_state::second_cpu_irq_line_clear_w(uint8_t data)
 {
 	m_slave->set_input_line(0, CLEAR_LINE);
-	logerror("CPU#1 VBLANK int clear at scanline=%3i\n", m_curr_scanline);
+	LOGIRQ("CPU#1 VBLANK int clear at scanline=%3i\n", m_curr_scanline);
 	return;
 }
 
@@ -202,29 +202,19 @@ void tubep_state::tubep_second_portmap(address_map &map)
 {
 	map.global_mask(0xff);
 	map(0x7f, 0x7f).w(FUNC(tubep_state::second_cpu_irq_line_clear_w));
+	map(0xb6, 0xb6).nopw(); // ?
 }
 
 
-READ8_MEMBER(tubep_state::tubep_soundlatch_r)
+uint8_t tubep_state::tubep_soundlatch_r()
 {
-	int res;
-
-	res = m_sound_latch;
-	m_sound_latch = 0; /* "=0" ????  or "&= 0x7f" ?????  works either way */
-
-	return res;
+	return (m_soundlatch->pending_r() << 7) | (m_soundlatch->read() & 0x7f);
 }
 
-READ8_MEMBER(tubep_state::tubep_sound_irq_ack)
+uint8_t tubep_state::tubep_sound_irq_ack()
 {
 	m_soundcpu->set_input_line(0, CLEAR_LINE);
 	return 0;
-}
-
-WRITE8_MEMBER(tubep_state::tubep_sound_unknown)
-{
-	/*logerror("Sound CPU writes to port 0x07 - unknown function\n");*/
-	return;
 }
 
 
@@ -243,7 +233,7 @@ void tubep_state::tubep_sound_portmap(address_map &map)
 	map(0x02, 0x03).w("ay2", FUNC(ay8910_device::address_data_w));
 	map(0x04, 0x05).w("ay3", FUNC(ay8910_device::address_data_w));
 	map(0x06, 0x06).r(FUNC(tubep_state::tubep_soundlatch_r));
-	map(0x07, 0x07).w(FUNC(tubep_state::tubep_sound_unknown));
+	map(0x07, 0x07).w(m_soundlatch, FUNC(generic_latch_8_device::acknowledge_w));
 }
 
 
@@ -261,7 +251,7 @@ void tubep_state::device_timer(emu_timer &timer, device_timer_id id, int param, 
 		rjammer_scanline_callback(ptr, param);
 		break;
 	default:
-		assert_always(false, "Unknown id in tubep_state::device_timer");
+		throw emu_fatalerror("Unknown id in tubep_state::device_timer");
 	}
 }
 
@@ -276,7 +266,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::tubep_scanline_callback)
 	/* activates at the start of VBLANK signal which happens at the beginning of scaline number 240 */
 	if (scanline == 240)
 	{
-		logerror("VBLANK CPU#0\n");
+		LOGIRQ("VBLANK CPU#0\n");
 		m_maincpu->set_input_line(0, ASSERT_LINE);
 	}
 
@@ -285,7 +275,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::tubep_scanline_callback)
 	/* activates at the _end_ of VBLANK signal which happens at the beginning of scanline number 16 */
 	if (scanline == 16)
 	{
-		logerror("/VBLANK CPU#1\n");
+		LOGIRQ("/VBLANK CPU#1\n");
 		m_slave->set_input_line(0, ASSERT_LINE);
 	}
 
@@ -294,7 +284,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::tubep_scanline_callback)
 	/* activates at the _end_ of VBLANK signal which happens at the beginning of scanline number 16 */
 	if (scanline == 16)
 	{
-		logerror("/nmi CPU#3\n");
+		LOGIRQ("/nmi CPU#3\n");
 		tubep_vblank_end(); /* switch buffered sprite RAM page */
 		m_mcu->set_input_line(INPUT_LINE_NMI, ASSERT_LINE);
 	}
@@ -302,7 +292,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::tubep_scanline_callback)
 	/* deactivates at the start of VBLANK signal which happens at the beginning of scanline number 240*/
 	if (scanline == 240)
 	{
-		logerror("CPU#3 nmi clear\n");
+		LOGIRQ("CPU#3 nmi clear\n");
 		m_mcu->set_input_line(INPUT_LINE_NMI, CLEAR_LINE);
 	}
 
@@ -318,7 +308,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::tubep_scanline_callback)
 	m_screen->update_partial(m_screen->vpos());
 
 	//debug
-	logerror("scanline=%3i scrgetvpos(0)=%3i\n",scanline,m_screen->vpos());
+	LOGIRQ("scanline=%3i scrgetvpos(0)=%3i\n",scanline,m_screen->vpos());
 
 	scanline++;
 	if (scanline >= 264)
@@ -338,7 +328,6 @@ TIMER_CALLBACK_MEMBER(tubep_state::tubep_scanline_callback)
 void tubep_state::tubep_setup_save_state()
 {
 	/* Set up save state */
-	save_item(NAME(m_sound_latch));
 	save_item(NAME(m_ls74));
 	save_item(NAME(m_ls377));
 }
@@ -438,7 +427,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::rjammer_scanline_callback)
 	/* activates at the start of VBLANK signal which happens at the beginning of scaline number 240 */
 	if (scanline == 240)
 	{
-		logerror("VBLANK CPU#0\n");
+		LOGIRQ("VBLANK CPU#0\n");
 		m_maincpu->set_input_line(0, ASSERT_LINE);
 	}
 
@@ -447,7 +436,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::rjammer_scanline_callback)
 	/* activates at the _end_ of VBLANK signal which happens at the beginning of scanline number 16 */
 	if (scanline == 16)
 	{
-		logerror("/VBLANK CPU#1\n");
+		LOGIRQ("/VBLANK CPU#1\n");
 		m_slave->set_input_line(0, HOLD_LINE);
 	}
 
@@ -456,7 +445,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::rjammer_scanline_callback)
 	/* activates at the _end_ of VBLANK signal which happens at the beginning of scanline number 16 */
 	if (scanline == 16)
 	{
-		logerror("/nmi CPU#3\n");
+		LOGIRQ("/nmi CPU#3\n");
 		tubep_vblank_end(); /* switch buffered sprite RAM page */
 		m_mcu->set_input_line(INPUT_LINE_NMI, ASSERT_LINE);
 	}
@@ -464,7 +453,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::rjammer_scanline_callback)
 	/* deactivates at the start of VBLANK signal which happens at the beginning of scanline number 240*/
 	if (scanline == 240)
 	{
-		logerror("CPU#3 nmi clear\n");
+		LOGIRQ("CPU#3 nmi clear\n");
 		m_mcu->set_input_line(INPUT_LINE_NMI, CLEAR_LINE);
 	}
 
@@ -479,7 +468,7 @@ TIMER_CALLBACK_MEMBER(tubep_state::rjammer_scanline_callback)
 
 	m_screen->update_partial(m_screen->vpos());
 
-	logerror("scanline=%3i scrgetvpos(0)=%3i\n", scanline, m_screen->vpos());
+	LOGIRQ("scanline=%3i scrgetvpos(0)=%3i\n", scanline, m_screen->vpos());
 
 	scanline++;
 	if (scanline >= 264)
@@ -510,7 +499,7 @@ MACHINE_RESET_MEMBER(tubep_state,rjammer)
  *
  *************************************/
 
-WRITE8_MEMBER(tubep_state::rjammer_voice_startstop_w)
+void tubep_state::rjammer_voice_startstop_w(uint8_t data)
 {
 	/* bit 0 of data selects voice start/stop (reset pin on MSM5205)*/
 	// 0 -stop; 1-start
@@ -520,7 +509,7 @@ WRITE8_MEMBER(tubep_state::rjammer_voice_startstop_w)
 }
 
 
-WRITE8_MEMBER(tubep_state::rjammer_voice_frequency_select_w)
+void tubep_state::rjammer_voice_frequency_select_w(uint8_t data)
 {
 	/* bit 0 of data selects voice frequency on MSM5205 */
 	// 0 -4 KHz; 1- 8KHz
@@ -537,18 +526,18 @@ WRITE_LINE_MEMBER(tubep_state::rjammer_adpcm_vck)
 
 	if (m_ls74 == 1)
 	{
-		m_msm->write_data((m_ls377 >> 0) & 15);
+		m_msm->data_w((m_ls377 >> 0) & 15);
 		m_soundcpu->set_input_line(0, ASSERT_LINE);
 	}
 	else
 	{
-		m_msm->write_data((m_ls377 >> 4) & 15);
+		m_msm->data_w((m_ls377 >> 4) & 15);
 	}
 
 }
 
 
-WRITE8_MEMBER(tubep_state::rjammer_voice_input_w)
+void tubep_state::rjammer_voice_input_w(uint8_t data)
 {
 	/* 8 bits of adpcm data for MSM5205 */
 	/* need to buffer the data, and switch two nibbles on two following interrupts*/
@@ -565,7 +554,7 @@ WRITE8_MEMBER(tubep_state::rjammer_voice_input_w)
 }
 
 
-WRITE8_MEMBER(tubep_state::rjammer_voice_intensity_control_w)
+void tubep_state::rjammer_voice_intensity_control_w(uint8_t data)
 {
 	/* 4 LSB bits select the intensity (analog circuit that alters the output from MSM5205) */
 	/* need to buffer the data */
@@ -594,27 +583,27 @@ void tubep_state::rjammer_sound_portmap(address_map &map)
 }
 
 
-WRITE8_MEMBER(tubep_state::ay8910_portA_0_w)
+void tubep_state::ay8910_portA_0_w(uint8_t data)
 {
 		//analog sound control
 }
-WRITE8_MEMBER(tubep_state::ay8910_portB_0_w)
+void tubep_state::ay8910_portB_0_w(uint8_t data)
 {
 		//analog sound control
 }
-WRITE8_MEMBER(tubep_state::ay8910_portA_1_w)
+void tubep_state::ay8910_portA_1_w(uint8_t data)
 {
 		//analog sound control
 }
-WRITE8_MEMBER(tubep_state::ay8910_portB_1_w)
+void tubep_state::ay8910_portB_1_w(uint8_t data)
 {
 		//analog sound control
 }
-WRITE8_MEMBER(tubep_state::ay8910_portA_2_w)
+void tubep_state::ay8910_portA_2_w(uint8_t data)
 {
 		//analog sound control
 }
-WRITE8_MEMBER(tubep_state::ay8910_portB_2_w)
+void tubep_state::ay8910_portB_2_w(uint8_t data)
 {
 		//analog sound control
 }
@@ -717,9 +706,7 @@ static INPUT_PORTS_START( tubep )
 	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) ) PORT_DIPLOCATION("SW3:2")
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x20, "In Game Sounds" ) PORT_DIPLOCATION("SW3:1")
-	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x20, DEF_STR( On ) )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("soundlatch", generic_latch_8_device, pending_r)
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNUSED )
 INPUT_PORTS_END
@@ -836,9 +823,10 @@ void tubep_state::tubep(machine_config &config)
 	m_soundcpu->set_addrmap(AS_IO, &tubep_state::tubep_sound_portmap);
 
 	NSC8105(config, m_mcu, 6000000);        /* 6 MHz Xtal - divided internally ??? */
+	m_mcu->set_ram_enable(false);
 	m_mcu->set_addrmap(AS_PROGRAM, &tubep_state::nsc_map);
 
-	config.m_minimum_quantum = attotime::from_hz(6000);
+	config.set_maximum_quantum(attotime::from_hz(6000));
 
 	ls259_device &mainlatch(LS259(config, "mainlatch"));
 	mainlatch.q_out_cb<0>().set(FUNC(tubep_state::coin1_counter_w));
@@ -847,6 +835,9 @@ void tubep_state::tubep(machine_config &config)
 	mainlatch.q_out_cb<5>().set(FUNC(tubep_state::screen_flip_w));
 	mainlatch.q_out_cb<6>().set(FUNC(tubep_state::background_romselect_w));
 	mainlatch.q_out_cb<7>().set(FUNC(tubep_state::colorproms_A4_line_w));
+
+	GENERIC_LATCH_8(config, m_soundlatch);
+	m_soundlatch->set_separate_acknowledge(true);
 
 	MCFG_MACHINE_START_OVERRIDE(tubep_state,tubep)
 	MCFG_MACHINE_RESET_OVERRIDE(tubep_state,tubep)
@@ -885,6 +876,7 @@ void tubep_state::tubepb(machine_config &config)
 	tubep(config);
 
 	M6802(config.replace(), m_mcu, 6000000); /* ? MHz Xtal */
+	m_mcu->set_ram_enable(false);
 	m_mcu->set_addrmap(AS_PROGRAM, &tubep_state::nsc_map);
 
 	//m_screen->screen_vblank().set_inputline(m_mcu, INPUT_LINE_NMI);
@@ -908,6 +900,7 @@ void tubep_state::rjammer(machine_config &config)
 	GENERIC_LATCH_8(config, "soundlatch").data_pending_callback().set_inputline(m_soundcpu, INPUT_LINE_NMI);
 
 	NSC8105(config, m_mcu, 6000000);    /* 6 MHz Xtal - divided internally ??? */
+	m_mcu->set_ram_enable(false);
 	m_mcu->set_addrmap(AS_PROGRAM, &tubep_state::nsc_map);
 
 	ls259_device &mainlatch(LS259(config, "mainlatch")); // 3A
@@ -1149,6 +1142,6 @@ ROM_END
  *************************************/
 
 //    year  rom      parent  machine  inp      state        init
-GAME( 1984, tubep,   0,      tubep,   tubep,   tubep_state, empty_init, ROT0, "Nichibutsu / Fujitek", "Tube Panic",           MACHINE_SUPPORTS_SAVE )
-GAME( 1984, tubepb,  tubep,  tubepb,  tubepb,  tubep_state, empty_init, ROT0, "bootleg",              "Tube Panic (bootleg)", MACHINE_SUPPORTS_SAVE )
-GAME( 1984, rjammer, 0,      rjammer, rjammer, tubep_state, empty_init, ROT0, "Nichibutsu / Alice",   "Roller Jammer",        MACHINE_SUPPORTS_SAVE )
+GAME( 1984, tubep,   0,      tubep,   tubep,   tubep_state, empty_init, ROT0, "Nichibutsu / Fujitek", "Tube Panic",           MACHINE_SUPPORTS_SAVE | MACHINE_IMPERFECT_SOUND )
+GAME( 1984, tubepb,  tubep,  tubepb,  tubepb,  tubep_state, empty_init, ROT0, "bootleg",              "Tube Panic (bootleg)", MACHINE_SUPPORTS_SAVE | MACHINE_IMPERFECT_SOUND )
+GAME( 1984, rjammer, 0,      rjammer, rjammer, tubep_state, empty_init, ROT0, "Nichibutsu / Alice",   "Roller Jammer",        MACHINE_SUPPORTS_SAVE | MACHINE_IMPERFECT_SOUND )

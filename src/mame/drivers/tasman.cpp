@@ -70,11 +70,11 @@ private:
 	required_device<palette_device> m_palette;
 
 	optional_shared_ptr<uint32_t> m_vram;
-	DECLARE_READ32_MEMBER(eeprom_r);
-	DECLARE_WRITE8_MEMBER(eeprom_w);
-	DECLARE_WRITE8_MEMBER(kongambl_ff_w);
-	DECLARE_READ32_MEMBER(test_r);
-	// DECLARE_READ32_MEMBER(rng_r);
+	uint32_t eeprom_r(offs_t offset, uint32_t mem_mask = ~0);
+	void eeprom_w(offs_t offset, uint8_t data);
+	void kongambl_ff_w(uint8_t data);
+	uint32_t test_r();
+	// uint32_t rng_r();
 
 	DECLARE_VIDEO_START(kongambl);
 	uint8_t m_irq_mask;
@@ -154,7 +154,7 @@ uint32_t kongambl_state::screen_update_kongambl(screen_device &screen, bitmap_in
 	return 0;
 }
 
-READ32_MEMBER(kongambl_state::eeprom_r)
+uint32_t kongambl_state::eeprom_r(offs_t offset, uint32_t mem_mask)
 {
 	//return machine().rand();
 	uint32_t retval = 0;
@@ -176,7 +176,7 @@ READ32_MEMBER(kongambl_state::eeprom_r)
 
 	return retval;
 }
-WRITE8_MEMBER(kongambl_state::eeprom_w)
+void kongambl_state::eeprom_w(offs_t offset, uint8_t data)
 {
 	// offset == 3 seems mux writes (active low)
 
@@ -193,19 +193,19 @@ WRITE8_MEMBER(kongambl_state::eeprom_w)
 		m_irq_mask = data;
 }
 
-READ32_MEMBER(kongambl_state::test_r)
+uint32_t kongambl_state::test_r()
 {
 	return -1;//machine().rand();
 }
 
 /*
- READ32_MEMBER(kongambl_state::rng_r)
+ uint32_t kongambl_state::rng_r()
 {
     return machine().rand();
 }
 */
 
-WRITE8_MEMBER(kongambl_state::kongambl_ff_w)
+void kongambl_state::kongambl_ff_w(uint8_t data)
 {
 	/* enables thru 0->1 */
 	/* ---- x--- (related to OBJ ROM) */
@@ -224,13 +224,12 @@ void kongambl_state::kongambl_map(address_map &map)
 	map(0x300000, 0x307fff).ram(); // backup RAM 24H
 
 	// override konami chips with custom areas until that code is removed
-	map(0x400000, 0x401fff).rom().region("k056832", 0);
 	map(0x420000, 0x43ffff).ram().share("vram");
 	//map(0x480000, 0x48003f).ram(); // vregs
 
 	//0x400000 0x400001 "13M" even addresses
 	//0x400002,0x400003 "13J" odd addresses
-//  map(0x400000, 0x401fff).r(m_k056832, FUNC(k056832_device::rom_word_r));
+	map(0x400000, 0x401fff).r(m_k056832, FUNC(k056832_device::rom_word_r));
 //  map(0x420000, 0x43ffff).rw(m_k056832, FUNC(k056832_device::unpaged_ram_word_r), FUNC(k056832_device::unpaged_ram_word_w));
 	map(0x480000, 0x48003f).w(m_k056832, FUNC(k056832_device::word_w));
 
@@ -675,7 +674,7 @@ void kongambl_state::kongambl(machine_config &config)
 	K055555(config, m_k055555, 0);
 
 	K055673(config, m_k055673, 0);
-	m_k055673->set_sprite_callback(FUNC(kongambl_state::sprite_callback), this);
+	m_k055673->set_sprite_callback(FUNC(kongambl_state::sprite_callback));
 	m_k055673->set_config(K055673_LAYOUT_LE2, -48+1, -23);
 	m_k055673->set_palette(m_palette);
 
@@ -684,7 +683,7 @@ void kongambl_state::kongambl(machine_config &config)
 #endif
 
 	K056832(config, m_k056832, 0);
-	m_k056832->set_tile_callback(FUNC(kongambl_state::tile_callback), this);
+	m_k056832->set_tile_callback(FUNC(kongambl_state::tile_callback));
 	m_k056832->set_config(K056832_BPP_8TASMAN, 0, 0);
 	m_k056832->set_palette(m_palette);
 

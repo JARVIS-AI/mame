@@ -24,7 +24,7 @@ class pv1000_sound_device : public device_t,
 public:
 	pv1000_sound_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
-	DECLARE_WRITE8_MEMBER(voice_w);
+	void voice_w(offs_t offset, uint8_t data);
 
 protected:
 	// device-level overrides
@@ -77,7 +77,7 @@ void pv1000_sound_device::device_start()
 	save_item(NAME(m_voice[3].val));
 }
 
-WRITE8_MEMBER(pv1000_sound_device::voice_w)
+void pv1000_sound_device::voice_w(offs_t offset, uint8_t data)
 {
 	offset &= 0x03;
 	m_voice[offset].period = data;
@@ -148,9 +148,9 @@ public:
 	void pv1000(machine_config &config);
 
 private:
-	DECLARE_WRITE8_MEMBER(io_w);
-	DECLARE_READ8_MEMBER(io_r);
-	DECLARE_WRITE8_MEMBER(gfxram_w);
+	void io_w(offs_t offset, uint8_t data);
+	uint8_t io_r(offs_t offset);
+	void gfxram_w(offs_t offset, uint8_t data);
 	uint8_t   m_io_regs[8];
 	uint8_t   m_fd_data;
 
@@ -184,7 +184,7 @@ private:
 
 void pv1000_state::pv1000_mem(address_map &map)
 {
-	//AM_RANGE(0x0000, 0x7fff)      // mapped by the cartslot
+	//map(0x0000, 0x7fff)      // mapped by the cartslot
 	map(0xb800, 0xbbff).ram().share("videoram");
 	map(0xbc00, 0xbfff).ram().w(FUNC(pv1000_state::gfxram_w)).region("gfxram", 0);
 }
@@ -197,7 +197,7 @@ void pv1000_state::pv1000_io(address_map &map)
 }
 
 
-WRITE8_MEMBER( pv1000_state::gfxram_w )
+void pv1000_state::gfxram_w(offs_t offset, uint8_t data)
 {
 	uint8_t *gfxram = memregion( "gfxram" )->base();
 
@@ -206,7 +206,7 @@ WRITE8_MEMBER( pv1000_state::gfxram_w )
 }
 
 
-WRITE8_MEMBER( pv1000_state::io_w )
+void pv1000_state::io_w(offs_t offset, uint8_t data)
 {
 	switch (offset)
 	{
@@ -214,7 +214,7 @@ WRITE8_MEMBER( pv1000_state::io_w )
 	case 0x01:
 	case 0x02:
 		//logerror("io_w offset=%02x, data=%02x (%03d)\n", offset, data , data);
-		m_sound->voice_w(space, offset, data);
+		m_sound->voice_w(offset, data);
 	break;
 
 	case 0x03:
@@ -237,7 +237,7 @@ WRITE8_MEMBER( pv1000_state::io_w )
 }
 
 
-READ8_MEMBER( pv1000_state::io_r )
+uint8_t pv1000_state::io_r(offs_t offset)
 {
 	uint8_t data = m_io_regs[offset];
 
@@ -382,7 +382,7 @@ void pv1000_state::pv1000_postload()
 {
 	// restore GFX ram
 	for (int i = 0; i < 0x400; i++)
-		gfxram_w(m_maincpu->space(AS_PROGRAM), i, m_gfxram[i]);
+		gfxram_w(i, m_gfxram[i]);
 }
 
 void pv1000_state::machine_start()
@@ -395,7 +395,7 @@ void pv1000_state::machine_start()
 
 	if (m_cart->exists())
 	{
-		m_maincpu->space(AS_PROGRAM).install_read_handler(0x0000, 0x7fff, read8sm_delegate(FUNC(generic_slot_device::read_rom),(generic_slot_device*)m_cart));
+		m_maincpu->space(AS_PROGRAM).install_read_handler(0x0000, 0x7fff, read8sm_delegate(*m_cart, FUNC(generic_slot_device::read_rom)));
 
 		// FIXME: this is needed for gfx decoding, but there is probably a cleaner solution!
 		std::string region_tag;
@@ -462,7 +462,7 @@ void pv1000_state::pv1000(machine_config &config)
 	/* Cartridge slot */
 	generic_cartslot_device &cartslot(GENERIC_CARTSLOT(config, "cartslot", generic_linear_slot, "pv1000_cart"));
 	cartslot.set_must_be_loaded(true);
-	cartslot.set_device_load(FUNC(pv1000_state::cart_load), this);
+	cartslot.set_device_load(FUNC(pv1000_state::cart_load));
 
 	/* Software lists */
 	SOFTWARE_LIST(config, "cart_list").set_original("pv1000");

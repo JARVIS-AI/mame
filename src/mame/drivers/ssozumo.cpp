@@ -42,13 +42,13 @@ void ssozumo_state::ssozumo_map(address_map &map)
 	map(0x4010, 0x4010).portr("P2").w("soundlatch", FUNC(generic_latch_8_device::write));
 	map(0x4020, 0x4020).portr("DSW2").w(FUNC(ssozumo_state::scroll_w));
 	map(0x4030, 0x4030).portr("DSW1");
-//  AM_RANGE(0x4030, 0x4030) AM_WRITEONLY
+//  map(0x4030, 0x4030).writeonly();
 	map(0x4050, 0x407f).ram().w(FUNC(ssozumo_state::paletteram_w)).share("paletteram");
 	map(0x6000, 0xffff).rom();
 }
 
 
-WRITE8_MEMBER(ssozumo_state::sound_nmi_mask_w)
+void ssozumo_state::sound_nmi_mask_w(uint8_t data)
 {
 	m_sound_nmi_mask = data & 1;
 }

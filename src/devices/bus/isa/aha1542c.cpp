@@ -165,13 +165,13 @@ DEFINE_DEVICE_TYPE(AHA1542CP, aha1542cp_device, "aha1542cp", "AHA-1542CP SCSI Co
 
 #define Z84C0010_TAG "z84c0010"
 
-READ8_MEMBER( aha1542c_device::aha1542_r )
+u8 aha1542c_device::aha1542_r(offs_t offset)
 {
 	logerror("%s aha1542_r(): offset=%d\n", machine().describe_context(), offset);
 	return 0xff;
 }
 
-WRITE8_MEMBER( aha1542c_device::aha1542_w )
+void aha1542c_device::aha1542_w(offs_t offset, u8 data)
 {
 	logerror("%s aha1542_w(): offset=%d data=0x%02x\n", machine().describe_context(), offset, data);
 }
@@ -228,7 +228,7 @@ void aha1542c_device::z84c0010_mem(address_map &map)
 	map(0xa000, 0xa000).portr("SWITCHES");
 	map(0xb000, 0xb000).w(FUNC(aha1542c_device::local_latch_w));
 	map(0xe000, 0xe0ff).ram();        // probably PC<->Z80 communication area
-	map(0xe003, 0xe003).lr8("e003_r", []() { return 0x20; });
+	map(0xe003, 0xe003).lr8(NAME([] () { return 0x20; }));
 }
 
 u8 aha1542cp_device::eeprom_r()
@@ -377,8 +377,9 @@ void aha1542c_device::device_start()
 {
 	set_isa_device();
 	m_isa->install_rom(this, 0xdc000, 0xdffff, "aha1542", "aha1542");
-	m_isa->install_device(0x330, 0x333, read8_delegate(FUNC( aha1542cf_device::aha1542_r ), this),
-	write8_delegate(FUNC( aha1542cf_device::aha1542_w ), this) );
+	m_isa->install_device(0x330, 0x333,
+			read8sm_delegate(*this, FUNC(aha1542cf_device::aha1542_r)),
+			write8sm_delegate(*this, FUNC(aha1542cf_device::aha1542_w)));
 }
 
 

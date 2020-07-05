@@ -94,8 +94,7 @@ protected:
 	virtual void machine_start() override;
 
 private:
-	DECLARE_READ8_MEMBER(ldp_read);
-	DECLARE_WRITE8_MEMBER(ldp_write);
+	uint8_t ldp_read();
 	uint32_t screen_update_lgp(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
 	INTERRUPT_GEN_MEMBER(vblank_callback_lgp);
 	DECLARE_WRITE_LINE_MEMBER(ld_command_strobe_cb);
@@ -124,8 +123,6 @@ private:
 /* VIDEO GOODS */
 uint32_t lgp_state::screen_update_lgp(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
-	int charx, chary;
-
 	/* make color 0 transparent */
 	m_palette->set_pen_color(0, rgb_t(0,0,0,0));
 
@@ -133,18 +130,18 @@ uint32_t lgp_state::screen_update_lgp(screen_device &screen, bitmap_rgb32 &bitma
 	bitmap.fill(0, cliprect);
 
 	/* Draw tiles */
-	for (charx = 0; charx < 32; charx++)
+	for (int charx = 0; charx < 32; charx++)
 	{
-		for (chary = 0; chary < 32; chary++)
+		for (int chary = 0; chary < 32; chary++)
 		{
-			int current_screen_character = (chary*32) + charx;
+			int current_screen_character = (chary * 32) + charx;
 
 			/* Somewhere there's a flag that offsets the tilemap by 0x100*x */
 			/* Palette is likely set somewhere as well (tile_control_ram?) */
-			m_gfxdecode->gfx(0)->transpen(bitmap,cliprect,
+			m_gfxdecode->gfx(0)->transpen(bitmap, cliprect,
 					m_tile_ram[current_screen_character],
 					0,
-					0, 0, charx*8, chary*8, 0);
+					0, 0, charx * 8, chary * 8, 0);
 		}
 	}
 
@@ -154,16 +151,10 @@ uint32_t lgp_state::screen_update_lgp(screen_device &screen, bitmap_rgb32 &bitma
 
 /* MEMORY HANDLERS */
 /* Main Z80 R/W */
-READ8_MEMBER(lgp_state::ldp_read)
+uint8_t lgp_state::ldp_read()
 {
 	return m_laserdisc->status_r();
 }
-
-WRITE8_MEMBER(lgp_state::ldp_write)
-{
-	m_laserdisc->data_w(data);
-}
-
 
 /* Sound Z80 R/W */
 
@@ -175,8 +166,8 @@ void lgp_state::main_program_map(address_map &map)
 	map(0xe000, 0xe3ff).ram().share("tile_ram");
 	map(0xe400, 0xe7ff).ram().share("tile_ctrl_ram");
 
-//  AM_RANGE(0xef00,0xef00) AM_READ_PORT("IN_TEST")
-	map(0xef80, 0xef80).rw(FUNC(lgp_state::ldp_read), FUNC(lgp_state::ldp_write));
+//  map(0xef00, 0xef00).portr("IN_TEST");
+	map(0xef80, 0xef80).r(FUNC(lgp_state::ldp_read)).w(m_laserdisc, FUNC(pioneer_ldv1000_device::data_w));
 	map(0xefb8, 0xefb8).nopr(); // watchdog
 	map(0xefc0, 0xefc0).portr("DSWA");    /* Not tested */
 	map(0xefc8, 0xefc8).portr("DSWB");
@@ -199,8 +190,8 @@ void lgp_state::sound_program_map(address_map &map)
 void lgp_state::main_io_map(address_map &map)
 {
 	map.global_mask(0xff);
-//  AM_RANGE(0xfd,0xfd) AM_READ_PORT("IN_TEST")
-//  AM_RANGE(0xfe,0xfe) AM_READ_PORT("IN_TEST")
+//  map(0xfd,0xfd).portr("IN_TEST");
+//  map(0xfe,0xfe).portr("IN_TEST");
 }
 
 void lgp_state::sound_io_map(address_map &map)
@@ -426,7 +417,6 @@ void lgp_state::lgp(machine_config &config)
 	PIONEER_LDV1000(config, m_laserdisc, 0);
 	m_laserdisc->command_strobe_callback().set(FUNC(lgp_state::ld_command_strobe_cb));
 	m_laserdisc->set_overlay(256, 256, FUNC(lgp_state::screen_update_lgp));
-	m_laserdisc->set_overlay_palette(m_palette);
 	m_laserdisc->add_route(0, "lspeaker", 1.0);
 	m_laserdisc->add_route(1, "rspeaker", 1.0);
 

@@ -90,13 +90,13 @@ void exterm_state::machine_start()
  *
  *************************************/
 
-WRITE16_MEMBER(exterm_state::host_data_w)
+void exterm_state::host_data_w(offs_t offset, uint16_t data)
 {
 	m_slave->host_w(offset / 0x0010000, data);
 }
 
 
-READ16_MEMBER(exterm_state::host_data_r)
+uint16_t exterm_state::host_data_r(offs_t offset)
 {
 	return m_slave->host_r(offset / 0x0010000);
 }
@@ -110,7 +110,7 @@ READ16_MEMBER(exterm_state::host_data_r)
  *************************************/
 
 template<uint8_t Which>
-READ16_MEMBER(exterm_state::trackball_port_r)
+uint16_t exterm_state::trackball_port_r()
 {
 	uint16_t port;
 
@@ -143,7 +143,7 @@ READ16_MEMBER(exterm_state::trackball_port_r)
  *
  *************************************/
 
-WRITE16_MEMBER(exterm_state::output_port_0_w)
+void exterm_state::output_port_0_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	/* All the outputs are activated on the rising edge */
 
@@ -171,7 +171,7 @@ WRITE16_MEMBER(exterm_state::output_port_0_w)
 }
 
 
-WRITE8_MEMBER(exterm_state::sound_latch_w)
+void exterm_state::sound_latch_w(uint8_t data)
 {
 	// data is latched independently for both sound CPUs
 	m_soundlatch[0]->write(data);
@@ -194,14 +194,14 @@ TIMER_DEVICE_CALLBACK_MEMBER(exterm_state::master_sound_nmi_callback)
 }
 
 
-WRITE8_MEMBER(exterm_state::ym2151_data_latch_w)
+void exterm_state::ym2151_data_latch_w(uint8_t data)
 {
 	/* bit 7 of the sound control selects which port */
 	m_ym2151->write(m_sound_control >> 7, data);
 }
 
 
-WRITE8_MEMBER(exterm_state::sound_nmi_rate_w)
+void exterm_state::sound_nmi_rate_w(uint8_t data)
 {
 	/* rate is controlled by the value written here */
 	/* this value is latched into up-counters, which are clocked at the */
@@ -211,7 +211,7 @@ WRITE8_MEMBER(exterm_state::sound_nmi_rate_w)
 }
 
 
-READ8_MEMBER(exterm_state::sound_nmi_to_slave_r)
+uint8_t exterm_state::sound_nmi_to_slave_r()
 {
 	/* a read from here triggers an NMI pulse to the slave */
 	m_audioslave->pulse_input_line(INPUT_LINE_NMI, attotime::zero);
@@ -219,7 +219,7 @@ READ8_MEMBER(exterm_state::sound_nmi_to_slave_r)
 }
 
 
-WRITE8_MEMBER(exterm_state::sound_control_w)
+void exterm_state::sound_control_w(uint8_t data)
 {
 /*
     D7 = to S4-15
@@ -277,7 +277,7 @@ void exterm_state::sound_master_map(address_map &map)
 	map(0x6000, 0x67ff).w(FUNC(exterm_state::sound_nmi_rate_w));
 	map(0x6800, 0x6fff).r(m_soundlatch[0], FUNC(generic_latch_8_device::read));
 	map(0x7000, 0x77ff).r(FUNC(exterm_state::sound_nmi_to_slave_r));
-/*  AM_RANGE(0x7800, 0x7fff) unknown - to S4-13 */
+//  map(0x7800, 0x7fff) unknown - to S4-13
 	map(0x8000, 0xffff).rom();
 	map(0xa000, 0xbfff).w(FUNC(exterm_state::sound_control_w));
 }
@@ -395,7 +395,7 @@ void exterm_state::exterm(machine_config &config)
 	GENERIC_LATCH_8(config, m_soundlatch[0]).data_pending_callback().set_inputline(m_audiocpu, M6502_IRQ_LINE);
 	GENERIC_LATCH_8(config, m_soundlatch[1]).data_pending_callback().set_inputline(m_audioslave, M6502_IRQ_LINE);
 
-	config.m_minimum_quantum = attotime::from_hz(6000);
+	config.set_maximum_quantum(attotime::from_hz(6000));
 
 	NVRAM(config, "nvram", nvram_device::DEFAULT_ALL_0);
 

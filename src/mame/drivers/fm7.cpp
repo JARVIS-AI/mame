@@ -210,7 +210,7 @@ void fm7_state::device_timer(emu_timer &timer, device_timer_id id, int param, vo
 		fm77av_vsync(ptr, param);
 		break;
 	default:
-		assert_always(false, "Unknown id in fm7_state::device_timer");
+		throw emu_fatalerror("Unknown id in fm7_state::device_timer");
 	}
 }
 
@@ -230,7 +230,7 @@ void fm7_state::device_timer(emu_timer &timer, device_timer_id id, int param, vo
  *   bit 7 - SYNDET
  *
  */
-WRITE8_MEMBER(fm7_state::fm7_irq_mask_w)
+void fm7_state::fm7_irq_mask_w(uint8_t data)
 {
 	m_irq_mask = data;
 	logerror("IRQ mask set: 0x%02x\n",m_irq_mask);
@@ -249,7 +249,7 @@ WRITE8_MEMBER(fm7_state::fm7_irq_mask_w)
  *   bit 6 - buzzer on for 205ms
  *   bit 7 - buzzer on/off
  */
-READ8_MEMBER(fm7_state::fm7_irq_cause_r)
+uint8_t fm7_state::fm7_irq_cause_r()
 {
 	uint8_t ret = ~m_irq_flags;
 
@@ -271,7 +271,7 @@ TIMER_CALLBACK_MEMBER(fm7_state::fm7_beeper_off)
 	logerror("timed beeper off\n");
 }
 
-WRITE8_MEMBER(fm7_state::fm7_beeper_w)
+void fm7_state::fm7_beeper_w(uint8_t data)
 {
 	m_speaker_active = data & 0x01;
 
@@ -306,7 +306,7 @@ WRITE8_MEMBER(fm7_state::fm7_beeper_w)
  *  Sub CPU: port 0xd403 (read-only)
  *  On read: timed buzzer sound
  */
-READ8_MEMBER(fm7_state::fm7_sub_beeper_r)
+uint8_t fm7_state::fm7_sub_beeper_r()
 {
 	if(m_speaker_active)
 	{
@@ -317,7 +317,7 @@ READ8_MEMBER(fm7_state::fm7_sub_beeper_r)
 	return 0xff;
 }
 
-READ8_MEMBER(fm7_state::vector_r)
+uint8_t fm7_state::vector_r(offs_t offset)
 {
 	uint32_t init_size = m_rom_ptr.bytes();
 
@@ -334,7 +334,7 @@ READ8_MEMBER(fm7_state::vector_r)
 	}
 }
 
-WRITE8_MEMBER(fm7_state::vector_w)
+void fm7_state::vector_w(offs_t offset, uint8_t data)
 {
 	if(m_type == SYS_FM7)
 		m_ram_ptr[0xfff0+offset] = data;
@@ -348,7 +348,7 @@ WRITE8_MEMBER(fm7_state::vector_w)
  *  bit 0 - attention IRQ active, clears flag when read.
  *  bit 1 - break key active
  */
-READ8_MEMBER(fm7_state::fm7_fd04_r)
+uint8_t fm7_state::fm7_fd04_r()
 {
 	uint8_t ret = 0xff;
 
@@ -370,7 +370,7 @@ READ8_MEMBER(fm7_state::fm7_fd04_r)
  *  On read, enables BASIC ROM at 0x8000 (default)
  *  On write, disables BASIC ROM, enables RAM (if more than 32kB)
  */
-READ8_MEMBER(fm7_state::fm7_rom_en_r)
+uint8_t fm7_state::fm7_rom_en_r(address_space &space)
 {
 	if(!machine().side_effects_disabled())
 	{
@@ -388,7 +388,7 @@ READ8_MEMBER(fm7_state::fm7_rom_en_r)
 	return 0x00;
 }
 
-WRITE8_MEMBER(fm7_state::fm7_rom_en_w)
+void fm7_state::fm7_rom_en_w(address_space &space, uint8_t data)
 {
 	uint8_t* RAM = memregion("maincpu")->base();
 
@@ -408,7 +408,7 @@ WRITE8_MEMBER(fm7_state::fm7_rom_en_w)
  *  Port is write-only.  Initiate ROM is on by default.
  *
  */
-WRITE8_MEMBER(fm7_state::fm7_init_en_w)
+void fm7_state::fm7_init_en_w(address_space &space, uint8_t data)
 {
 	if(data & 0x02)
 	{
@@ -436,7 +436,7 @@ WRITE_LINE_MEMBER(fm7_state::fm7_fdc_drq_w)
 	m_fdc_drq_flag = state;
 }
 
-READ8_MEMBER(fm7_state::fm7_fdc_r)
+uint8_t fm7_state::fm7_fdc_r(offs_t offset)
 {
 	uint8_t ret = 0;
 
@@ -469,7 +469,7 @@ READ8_MEMBER(fm7_state::fm7_fdc_r)
 	return 0x00;
 }
 
-WRITE8_MEMBER(fm7_state::fm7_fdc_w)
+void fm7_state::fm7_fdc_w(offs_t offset, uint8_t data)
 {
 	switch(offset)
 	{
@@ -533,7 +533,7 @@ WRITE8_MEMBER(fm7_state::fm7_fdc_w)
  *  CPU clock speed in bit 0 (0 = 1.2MHz, 1 = 2MHz)
  *  Clears keyboard IRQ flag
  */
-READ8_MEMBER(fm7_state::fm7_keyboard_r)
+uint8_t fm7_state::fm7_keyboard_r(offs_t offset)
 {
 	uint8_t ret;
 	switch(offset)
@@ -550,7 +550,7 @@ READ8_MEMBER(fm7_state::fm7_keyboard_r)
 	}
 }
 
-READ8_MEMBER(fm7_state::fm7_sub_keyboard_r)
+uint8_t fm7_state::fm7_sub_keyboard_r(offs_t offset)
 {
 	uint8_t ret;
 	switch(offset)
@@ -591,7 +591,7 @@ READ8_MEMBER(fm7_state::fm7_sub_keyboard_r)
  *
  *  ACK is received after 5us.
  */
-READ8_MEMBER(fm7_state::fm77av_key_encoder_r)
+uint8_t fm7_state::fm77av_key_encoder_r(offs_t offset)
 {
 	uint8_t ret = 0xff;
 	switch(offset)
@@ -727,7 +727,7 @@ void fm7_state::fm77av_encoder_handle_command()
 	m_encoder.position = 0;
 }
 
-WRITE8_MEMBER(fm7_state::fm77av_key_encoder_w)
+void fm7_state::fm77av_key_encoder_w(offs_t offset, uint8_t data)
 {
 	m_encoder.ack = 0;
 	if(offset == 0) // data register
@@ -776,7 +776,7 @@ WRITE_LINE_MEMBER(fm7_state::write_centronics_perror)
 	m_centronics_perror = state;
 }
 
-READ8_MEMBER(fm7_state::fm7_cassette_printer_r)
+uint8_t fm7_state::fm7_cassette_printer_r()
 {
 	// bit 7: cassette input
 	// bit 5: printer DET2
@@ -802,7 +802,7 @@ READ8_MEMBER(fm7_state::fm7_cassette_printer_r)
 	return ret;
 }
 
-WRITE8_MEMBER(fm7_state::fm7_cassette_printer_w)
+void fm7_state::fm7_cassette_printer_w(offs_t offset, uint8_t data)
 {
 	switch(offset)
 	{
@@ -831,7 +831,7 @@ WRITE8_MEMBER(fm7_state::fm7_cassette_printer_w)
  *  Main CPU: 0xfd0b
  *   - bit 0: Boot mode: 0=BASIC, 1=DOS
  */
-READ8_MEMBER(fm7_state::fm77av_boot_mode_r)
+uint8_t fm7_state::fm77av_boot_mode_r()
 {
 	uint8_t ret = 0xff;
 
@@ -904,36 +904,36 @@ void fm7_state::fm7_update_psg()
 	}
 }
 
-READ8_MEMBER(fm7_state::fm7_psg_select_r)
+uint8_t fm7_state::fm7_psg_select_r()
 {
 	return 0xff;
 }
 
-WRITE8_MEMBER(fm7_state::fm7_psg_select_w)
+void fm7_state::fm7_psg_select_w(uint8_t data)
 {
 	m_psg_regsel = data & 0x03;
 	fm7_update_psg();
 }
 
-WRITE8_MEMBER(fm7_state::fm77av_ym_select_w)
+void fm7_state::fm77av_ym_select_w(uint8_t data)
 {
 	m_psg_regsel = data & 0x0f;
 	fm7_update_psg();
 }
 
-READ8_MEMBER(fm7_state::fm7_psg_data_r)
+uint8_t fm7_state::fm7_psg_data_r()
 {
 //  fm7_update_psg();
 	return m_psg_data;
 }
 
-WRITE8_MEMBER(fm7_state::fm7_psg_data_w)
+void fm7_state::fm7_psg_data_w(uint8_t data)
 {
 	m_psg_data = data;
 //  fm7_update_psg();
 }
 
-WRITE8_MEMBER(fm7_state::fm77av_bootram_w)
+void fm7_state::fm77av_bootram_w(offs_t offset, uint8_t data)
 {
 	if(!(m_mmr.mode & 0x01))
 		return;
@@ -941,7 +941,7 @@ WRITE8_MEMBER(fm7_state::fm77av_bootram_w)
 }
 
 // Shared RAM is only usable on the main CPU if the sub CPU is halted
-READ8_MEMBER(fm7_state::fm7_main_shared_r)
+uint8_t fm7_state::fm7_main_shared_r(offs_t offset)
 {
 	if(m_video.sub_halt != 0)
 		return m_shared_ram[offset];
@@ -949,13 +949,13 @@ READ8_MEMBER(fm7_state::fm7_main_shared_r)
 		return 0xff;
 }
 
-WRITE8_MEMBER(fm7_state::fm7_main_shared_w)
+void fm7_state::fm7_main_shared_w(offs_t offset, uint8_t data)
 {
 	if(m_video.sub_halt != 0)
 		m_shared_ram[offset] = data;
 }
 
-READ8_MEMBER(fm7_state::fm7_fmirq_r)
+uint8_t fm7_state::fm7_fmirq_r()
 {
 	uint8_t ret = 0xff;
 
@@ -965,17 +965,7 @@ READ8_MEMBER(fm7_state::fm7_fmirq_r)
 	return ret;
 }
 
-READ8_MEMBER(fm7_state::fm77av_joy_1_r)
-{
-	return m_joy1->read();
-}
-
-READ8_MEMBER(fm7_state::fm77av_joy_2_r)
-{
-	return m_joy2->read();
-}
-
-READ8_MEMBER(fm7_state::fm7_unknown_r)
+uint8_t fm7_state::fm7_unknown_r()
 {
 	// Port 0xFDFC is read by Dig Dug.  Controller port, perhaps?
 	// Must return 0xff for it to read the keyboard.
@@ -998,7 +988,7 @@ READ8_MEMBER(fm7_state::fm7_unknown_r)
  *              - bit 0: boot RAM read-write/read-only
  *
  */
-READ8_MEMBER(fm7_state::fm7_mmr_r)
+uint8_t fm7_state::fm7_mmr_r(offs_t offset)
 {
 	if(offset < 0x10)
 	{
@@ -1026,40 +1016,40 @@ void fm7_state::fm7_update_bank(address_space & space, int bank, uint8_t physica
         switch(physical)
         {
             case 0x10:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram0_r),this),write8_delegate(FUNC(fm7_state::fm7_vram0_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram0_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram0_w)));
                 break;
             case 0x11:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram1_r),this),write8_delegate(FUNC(fm7_state::fm7_vram1_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram1_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram1_w)));
                 break;
             case 0x12:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram2_r),this),write8_delegate(FUNC(fm7_state::fm7_vram2_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram2_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram2_w)));
                 break;
             case 0x13:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram3_r),this),write8_delegate(FUNC(fm7_state::fm7_vram3_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram3_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram3_w)));
                 break;
             case 0x14:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram4_r),this),write8_delegate(FUNC(fm7_state::fm7_vram4_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram4_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram4_w)));
                 break;
             case 0x15:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram5_r),this),write8_delegate(FUNC(fm7_state::fm7_vram5_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram5_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram5_w)));
                 break;
             case 0x16:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram6_r),this),write8_delegate(FUNC(fm7_state::fm7_vram6_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram6_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram6_w)));
                 break;
             case 0x17:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram7_r),this),write8_delegate(FUNC(fm7_state::fm7_vram7_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram7_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram7_w)));
                 break;
             case 0x18:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram8_r),this),write8_delegate(FUNC(fm7_state::fm7_vram8_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram8_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram8_w)));
                 break;
             case 0x19:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vram9_r),this),write8_delegate(FUNC(fm7_state::fm7_vram9_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vram9_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vram9_w)));
                 break;
             case 0x1a:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vramA_r),this),write8_delegate(FUNC(fm7_state::fm7_vramA_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vramA_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vramA_w)));
                 break;
             case 0x1b:
-                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_vramB_r),this),write8_delegate(FUNC(fm7_state::fm7_vramB_w),this));
+                space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_vramB_r)),write8_delegate(*this, FUNC(fm7_state::fm7_vramB_w)));
                 break;
         }
 //      membank(bank+1)->set_base(RAM+(physical<<12)-0x10000);
@@ -1067,12 +1057,12 @@ void fm7_state::fm7_update_bank(address_space & space, int bank, uint8_t physica
     }
     if(physical == 0x1c)
     {
-        space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_console_ram_banked_r),this),write8_delegate(FUNC(fm7_state::fm7_console_ram_banked_w),this));
+        space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_console_ram_banked_r)),write8_delegate(*this, FUNC(fm7_state::fm7_console_ram_banked_w)));
         return;
     }
     if(physical == 0x1d)
     {
-        space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(FUNC(fm7_state::fm7_sub_ram_ports_banked_r),this),write8_delegate(FUNC(fm7_state::fm7_sub_ram_ports_banked_w),this));
+        space.install_readwrite_handler(bank*0x1000,(bank*0x1000)+size,read8_delegate(*this, FUNC(fm7_state::fm7_sub_ram_ports_banked_r)),write8_delegate(*this, FUNC(fm7_state::fm7_sub_ram_ports_banked_w)));
         return;
     }
     if(physical == 0x35)
@@ -1145,7 +1135,7 @@ void fm7_state::fm7_mmr_refresh(address_space& space)
 	}
 	else
 	{
-		space.install_readwrite_handler(0x7000,0x7fff,read8sm_delegate(FUNC(address_map_bank_device::read8),(address_map_bank_device*)m_avbank[7]),write8sm_delegate(FUNC(address_map_bank_device::write8),(address_map_bank_device*)m_avbank[7]));
+		space.install_readwrite_handler(0x7000,0x7fff,read8sm_delegate(*m_avbank[7], FUNC(address_map_bank_device::read8)),write8sm_delegate(*m_avbank[7], FUNC(address_map_bank_device::write8)));
 	}
 	if(m_init_rom_en)
 	{
@@ -1169,7 +1159,7 @@ void fm7_state::fm7_mmr_refresh(address_space& space)
 	}
 }
 
-WRITE8_MEMBER(fm7_state::fm7_mmr_w)
+void fm7_state::fm7_mmr_w(address_space &space, offs_t offset, uint8_t data)
 {
 	if(offset < 0x10)
 	{
@@ -1210,7 +1200,7 @@ WRITE8_MEMBER(fm7_state::fm7_mmr_w)
  *
  *  Kanji ROM is visible at 0x20000 (first half only?)
  */
-READ8_MEMBER(fm7_state::fm7_kanji_r)
+uint8_t fm7_state::fm7_kanji_r(offs_t offset)
 {
 	uint8_t* KROM = m_kanji->base();
 	uint32_t addr = m_kanji_address << 1;
@@ -1231,7 +1221,7 @@ READ8_MEMBER(fm7_state::fm7_kanji_r)
 	}
 }
 
-WRITE8_MEMBER(fm7_state::fm7_kanji_w)
+void fm7_state::fm7_kanji_w(offs_t offset, uint8_t data)
 {
 	uint16_t addr;
 
@@ -1555,7 +1545,7 @@ void fm7_state::fm11_sub_mem(address_map &map)
 	map(0x9000, 0x9f7f).ram(); // Work RAM(?)
 	map(0x9f80, 0x9fff).ram().share("shared_ram");
 	map(0xafe0, 0xafe3).ram();
-//  AM_RANGE(0xafe4,0xafe4) AM_READWRITE(fm7_sub_busyflag_r,fm7_sub_busyflag_w)
+//  map(0xafe4, 0xafe4).rw(FUNC(fm7_state::fm7_sub_busyflag_r), FUNC(fm7_state::fm7_sub_busyflag_w));
 	map(0xafe6, 0xafe6).rw(FUNC(fm7_state::fm77av_video_flags_r), FUNC(fm7_state::fm77av_video_flags_w));
 	map(0xaff0, 0xaff0).rw(FUNC(fm7_state::fm7_sub_busyflag_r), FUNC(fm7_state::fm7_sub_busyflag_w));
 	map(0xc000, 0xffff).rom(); // sybsystem ROM
@@ -1599,15 +1589,15 @@ void fm7_state::fm16_io(address_map &map)
 	map(0xfd03, 0xfd03).rw(FUNC(fm7_state::fm7_irq_cause_r), FUNC(fm7_state::fm7_beeper_w));  // IRQ flags
 	map(0xfd04, 0xfd04).r(FUNC(fm7_state::fm7_fd04_r));
 	map(0xfd05, 0xfd05).rw(FUNC(fm7_state::fm7_subintf_r), FUNC(fm7_state::fm7_subintf_w));
-//  AM_RANGE(0xfd06,0xfd0c) AM_READ8(fm7_unknown_r,0xffff)
+//  map(0xfd06, 0xfd0c).r(FUNC(fm7_state::fm7_unknown_r));
 	map(0xfd0f, 0xfd0f).rw(FUNC(fm7_state::fm7_rom_en_r), FUNC(fm7_state::fm7_rom_en_w));
-//  AM_RANGE(0xfd10,0xfd17) AM_READ8(fm7_unknown_r,0xffff)
+//  map(0xfd10, 0xfd17).r(FUNC(fm7_state::fm7_unknown_r));
 	map(0xfd18, 0xfd1f).rw(FUNC(fm7_state::fm7_fdc_r), FUNC(fm7_state::fm7_fdc_w));
 	map(0xfd20, 0xfd23).rw(FUNC(fm7_state::fm7_kanji_r), FUNC(fm7_state::fm7_kanji_w));
-//  AM_RANGE(0xfd24,0xfd36) AM_READ8(fm7_unknown_r,0xffff)
+//  map(0xfd24, 0xfd36).r(FUNC(fm7_state::fm7_unknown_r));
 	map(0xfd37, 0xfd37).w(FUNC(fm7_state::fm7_multipage_w));
 	map(0xfd38, 0xfd3f).rw(FUNC(fm7_state::fm7_palette_r), FUNC(fm7_state::fm7_palette_w));
-//  AM_RANGE(0xfd40,0xfdff) AM_READ8(fm7_unknown_r,0xffff)
+//  map(0xfd40, 0xfdff).r(FUNC(fm7_state::fm7_unknown_r));
 }
 
 void fm7_state::fm16_sub_mem(address_map &map)
@@ -2036,12 +2026,11 @@ void fm7_state::fm7(machine_config &config)
 	MC6809(config, m_maincpu, 16.128_MHz_XTAL / 2);
 	m_maincpu->set_addrmap(AS_PROGRAM, &fm7_state::fm7_mem);
 	m_maincpu->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("maincpu");
 
 	MC6809(config, m_sub, 16.128_MHz_XTAL / 2);
 	m_sub->set_addrmap(AS_PROGRAM, &fm7_state::fm7_sub_mem);
 	m_sub->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_sub_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("sub");
+	config.set_perfect_quantum(m_sub);
 
 	SPEAKER(config, "mono").front_center();
 	AY8910(config, m_psg, 4.9152_MHz_XTAL / 4).add_route(ALL_OUTPUTS,"mono", 1.00);
@@ -2090,12 +2079,11 @@ void fm7_state::fm8(machine_config &config)
 	MC6809(config, m_maincpu, 4.9152_MHz_XTAL);  // 1.2MHz 68A09
 	m_maincpu->set_addrmap(AS_PROGRAM, &fm7_state::fm8_mem);
 	m_maincpu->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("maincpu");
 
 	MC6809(config, m_sub, 16.128_MHz_XTAL / 2);
 	m_sub->set_addrmap(AS_PROGRAM, &fm7_state::fm7_sub_mem);
 	m_sub->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_sub_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("sub");
+	config.set_perfect_quantum(m_sub);
 
 	SPEAKER(config, "mono").front_center();
 	BEEP(config, m_beeper, 1200).add_route(ALL_OUTPUTS, "mono", 0.50);
@@ -2138,18 +2126,17 @@ void fm7_state::fm77av(machine_config &config)
 	MC6809E(config, m_maincpu, 16.128_MHz_XTAL / 8);
 	m_maincpu->set_addrmap(AS_PROGRAM, &fm7_state::fm77av_mem);
 	m_maincpu->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("maincpu");
 
 	MC6809E(config, m_sub, 16.128_MHz_XTAL / 8);
 	m_sub->set_addrmap(AS_PROGRAM, &fm7_state::fm77av_sub_mem);
 	m_sub->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_sub_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("sub");
+	config.set_perfect_quantum(m_sub);
 
 	SPEAKER(config, "mono").front_center();
 	YM2203(config, m_ym, 4.9152_MHz_XTAL / 4);
 	m_ym->irq_handler().set(FUNC(fm7_state::fm77av_fmirq));
-	m_ym->port_a_read_callback().set(FUNC(fm7_state::fm77av_joy_1_r));
-	m_ym->port_b_read_callback().set(FUNC(fm7_state::fm77av_joy_2_r));
+	m_ym->port_a_read_callback().set_ioport("joy1");
+	m_ym->port_b_read_callback().set_ioport("joy2");
 	m_ym->add_route(ALL_OUTPUTS,"mono", 1.00);
 	BEEP(config, "beeper", 1200).add_route(ALL_OUTPUTS, "mono", 0.50);
 
@@ -2202,12 +2189,11 @@ void fm7_state::fm11(machine_config &config)
 	MC6809E(config, m_maincpu, 2000000);  // 2MHz 68B09E
 	m_maincpu->set_addrmap(AS_PROGRAM, &fm7_state::fm11_mem);
 	m_maincpu->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("maincpu");
 
 	MC6809(config, m_sub, 8000000);  // 2MHz 68B09
 	m_sub->set_addrmap(AS_PROGRAM, &fm7_state::fm11_sub_mem);
 	m_sub->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_sub_irq_ack));
-	config.m_perfect_cpu_quantum = subtag("sub");
+	config.set_perfect_quantum(m_sub);
 
 	I8088(config, m_x86, 8000000);  // 8MHz i8088
 	m_x86->set_addrmap(AS_PROGRAM, &fm7_state::fm11_x86_mem);
@@ -2259,12 +2245,11 @@ void fm7_state::fm16beta(machine_config &config)
 	I8086(config, m_maincpu, 8000000);  // 8MHz i8086
 	m_maincpu->set_addrmap(AS_PROGRAM, &fm7_state::fm16_mem);
 	m_maincpu->set_addrmap(AS_IO, &fm7_state::fm16_io);
-	config.m_perfect_cpu_quantum = subtag("maincpu");
 
 	MC6809(config, m_sub, 8000000);
 	m_sub->set_irq_acknowledge_callback(FUNC(fm7_state::fm7_sub_irq_ack));
 	m_sub->set_addrmap(AS_PROGRAM, &fm7_state::fm16_sub_mem);
-	config.m_perfect_cpu_quantum = subtag("sub");
+	config.set_perfect_quantum(m_sub);
 
 	SPEAKER(config, "mono").front_center();
 	BEEP(config, m_beeper, 1200).add_route(ALL_OUTPUTS, "mono", 0.50);

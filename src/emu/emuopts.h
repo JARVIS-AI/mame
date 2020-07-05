@@ -75,6 +75,7 @@
 #define OPTION_SLEEP                "sleep"
 #define OPTION_SPEED                "speed"
 #define OPTION_REFRESHSPEED         "refreshspeed"
+#define OPTION_LOWLATENCY           "lowlatency"
 
 // core render options
 #define OPTION_KEEPASPECT           "keepaspect"
@@ -153,6 +154,7 @@
 #define OPTION_OSLOG                "oslog"
 #define OPTION_UPDATEINPAUSE        "update_in_pause"
 #define OPTION_DEBUGSCRIPT          "debugscript"
+#define OPTION_DEBUGLOG             "debuglog"
 
 // core misc options
 #define OPTION_DRC                  "drc"
@@ -352,6 +354,7 @@ public:
 	bool sleep() const { return m_sleep; }
 	float speed() const { return float_value(OPTION_SPEED); }
 	bool refresh_speed() const { return m_refresh_speed; }
+	bool low_latency() const { return bool_value(OPTION_LOWLATENCY); }
 
 	// core render options
 	bool keep_aspect() const { return bool_value(OPTION_KEEPASPECT); }
@@ -428,6 +431,7 @@ public:
 	bool oslog() const { return bool_value(OPTION_OSLOG); }
 	const char *debug_script() const { return value(OPTION_DEBUGSCRIPT); }
 	bool update_in_pause() const { return bool_value(OPTION_UPDATEINPAUSE); }
+	bool debuglog() const { return bool_value(OPTION_DEBUGLOG); }
 
 	// core misc options
 	bool drc() const { return bool_value(OPTION_DRC); }
@@ -480,6 +484,7 @@ public:
 	bool has_slot_option(const std::string &device_name) const { return find_slot_option(device_name) ? true : false; }
 	const ::image_option &image_option(const std::string &device_name) const;
 	::image_option &image_option(const std::string &device_name);
+	bool has_image_option(const std::string &device_name) const { return m_image_options.find(device_name) != m_image_options.end(); }
 
 protected:
 	virtual void command_argument_processed() override;
@@ -508,7 +513,7 @@ private:
 
 	// slots and devices
 	std::unordered_map<std::string, ::slot_option>      m_slot_options;
-	std::unordered_map<std::string, ::image_option>     m_image_options_cannonical;
+	std::unordered_map<std::string, ::image_option>     m_image_options_canonical;
 	std::unordered_map<std::string, ::image_option *>   m_image_options;
 
 	// cached options, for scenarios where parsing core_options is too slow

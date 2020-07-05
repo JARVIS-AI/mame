@@ -69,8 +69,8 @@ public:
 	{
 	}
 
-	DECLARE_CUSTOM_INPUT_MEMBER(laserdisc_status_r);
-	DECLARE_CUSTOM_INPUT_MEMBER(laserdisc_command_r);
+	DECLARE_READ_LINE_MEMBER(laserdisc_status_r);
+	DECLARE_READ_LINE_MEMBER(laserdisc_command_r);
 	void init_fixed();
 	void init_variable();
 
@@ -106,7 +106,7 @@ private:
 		return CLEAR_LINE;
 	}
 
-	uint8_t laserdisc_status_r()
+	uint8_t laserdisc_status_strobe_r()
 	{
 		if (m_ldv1000 != nullptr) return m_ldv1000->status_strobe_r();
 		return CLEAR_LINE;
@@ -119,16 +119,16 @@ private:
 		return CLEAR_LINE;
 	}
 
-	DECLARE_WRITE8_MEMBER(misc_w);
-	DECLARE_WRITE8_MEMBER(dleuro_misc_w);
-	DECLARE_WRITE8_MEMBER(led_den1_w);
-	DECLARE_WRITE8_MEMBER(led_den2_w);
-	DECLARE_READ8_MEMBER(laserdisc_r);
-	DECLARE_WRITE8_MEMBER(laserdisc_w);
+	void misc_w(uint8_t data);
+	void dleuro_misc_w(uint8_t data);
+	void led_den1_w(offs_t offset, uint8_t data);
+	void led_den2_w(offs_t offset, uint8_t data);
+	uint8_t laserdisc_r();
+	void laserdisc_w(uint8_t data);
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 	void dleuro_palette(palette_device &palette) const;
-	uint32_t screen_update_dleuro(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
+	uint32_t screen_update_dleuro(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
 	DECLARE_WRITE_LINE_MEMBER(write_speaker);
 
 	void dleuro_io_map(address_map &map);
@@ -220,16 +220,18 @@ void dlair_state::dleuro_palette(palette_device &palette) const
  *
  *************************************/
 
-uint32_t dlair_state::screen_update_dleuro(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
+uint32_t dlair_state::screen_update_dleuro(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
 	// redraw the overlay
 	for (int y = 0; y < 32; y++)
+	{
 		for (int x = 0; x < 32; x++)
 		{
 			uint8_t const *const base = &m_videoram[y * 64 + x * 2 + 1];
 			// TODO: opaque?
-			m_gfxdecode->gfx(0)->opaque(bitmap,cliprect, base[0], base[1], 0, 0, 10 * x, 16 * y);
+			m_gfxdecode->gfx(0)->opaque(bitmap, cliprect, base[0], base[1], 0, 0, 10 * x, 16 * y);
 		}
+	}
 
 	return 0;
 }
@@ -272,7 +274,7 @@ void dlair_state::machine_reset()
  *
  *************************************/
 
-WRITE8_MEMBER(dlair_state::misc_w)
+void dlair_state::misc_w(uint8_t data)
 {
 	/*
 	    D0-D3 = B0-B3
@@ -295,7 +297,7 @@ WRITE8_MEMBER(dlair_state::misc_w)
 }
 
 
-WRITE8_MEMBER(dlair_state::dleuro_misc_w)
+void dlair_state::dleuro_misc_w(uint8_t data)
 {
 	/*
 	       D0 = CHAR GEN ON+
@@ -322,13 +324,13 @@ WRITE8_MEMBER(dlair_state::dleuro_misc_w)
 }
 
 
-WRITE8_MEMBER(dlair_state::led_den1_w)
+void dlair_state::led_den1_w(offs_t offset, uint8_t data)
 {
 	m_digits[0 | (offset & 7)] = led_map[data & 0x0f];
 }
 
 
-WRITE8_MEMBER(dlair_state::led_den2_w)
+void dlair_state::led_den2_w(offs_t offset, uint8_t data)
 {
 	m_digits[8 | (offset & 7)] = led_map[data & 0x0f];
 }
@@ -341,19 +343,19 @@ WRITE8_MEMBER(dlair_state::led_den2_w)
  *
  *************************************/
 
-CUSTOM_INPUT_MEMBER(dlair_state::laserdisc_status_r)
+READ_LINE_MEMBER(dlair_state::laserdisc_status_r)
 {
-	return laserdisc_status_r();
+	return laserdisc_status_strobe_r();
 }
 
 
-CUSTOM_INPUT_MEMBER(dlair_state::laserdisc_command_r)
+READ_LINE_MEMBER(dlair_state::laserdisc_command_r)
 {
 	return (laserdisc_ready_r() == ASSERT_LINE) ? 0 : 1;
 }
 
 
-READ8_MEMBER(dlair_state::laserdisc_r)
+uint8_t dlair_state::laserdisc_r()
 {
 	uint8_t result = laserdisc_data_r();
 	osd_printf_debug("laserdisc_r = %02X\n", result);
@@ -361,7 +363,7 @@ READ8_MEMBER(dlair_state::laserdisc_r)
 }
 
 
-WRITE8_MEMBER(dlair_state::laserdisc_w)
+void dlair_state::laserdisc_w(uint8_t data)
 {
 	m_laserdisc_data = data;
 }
@@ -561,8 +563,8 @@ static INPUT_PORTS_START( dlair )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
 	PORT_BIT( 0x30, IP_ACTIVE_LOW, IPT_UNKNOWN )    /* probably unused */
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, dlair_state,laserdisc_status_r, nullptr)     /* status strobe */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, dlair_state,laserdisc_command_r, nullptr)    /* command strobe */
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(dlair_state, laserdisc_status_r)     /* status strobe */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(dlair_state, laserdisc_command_r)    /* command strobe */
 INPUT_PORTS_END
 
 
@@ -593,8 +595,8 @@ static INPUT_PORTS_START( dleuro )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
 	PORT_BIT( 0x30, IP_ACTIVE_LOW, IPT_UNKNOWN )    /* probably unused */
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, dlair_state,laserdisc_status_r, nullptr)     /* status strobe */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, dlair_state,laserdisc_command_r, nullptr)    /* command strobe */
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(dlair_state, laserdisc_status_r)     /* status strobe */
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(dlair_state, laserdisc_command_r)    /* command strobe */
 
 	PORT_START("DSW1")
 	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Coinage ) ) PORT_DIPLOCATION("A:1")
@@ -782,7 +784,6 @@ void dlair_state::dleuro(machine_config &config)
 
 	PHILIPS_22VP932(config, m_22vp932, 0);
 	m_22vp932->set_overlay(256, 256, FUNC(dlair_state::screen_update_dleuro));
-	m_22vp932->set_overlay_palette(m_palette);
 	m_22vp932->add_route(0, "lspeaker", 1.0);
 	m_22vp932->add_route(1, "rspeaker", 1.0);
 

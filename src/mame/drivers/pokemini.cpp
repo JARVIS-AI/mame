@@ -101,9 +101,9 @@ private:
 
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	void pokemini_palette(palette_device &palette) const;
-	DECLARE_WRITE8_MEMBER(hwreg_w);
-	DECLARE_READ8_MEMBER(hwreg_r);
-	DECLARE_READ8_MEMBER(rom_r);
+	void hwreg_w(offs_t offset, uint8_t data);
+	uint8_t hwreg_r(offs_t offset);
+	uint8_t rom_r(offs_t offset);
 	DECLARE_DEVICE_IMAGE_LOAD_MEMBER(cart_load);
 
 	void pokemini_mem_map(address_map &map);
@@ -123,7 +123,7 @@ private:
 };
 
 
-READ8_MEMBER( pokemini_state::rom_r )
+uint8_t pokemini_state::rom_r(offs_t offset)
 {
 	offset += 0x2100;
 	return m_cart->read_rom(offset & 0x1fffff);
@@ -528,7 +528,7 @@ void pokemini_state::timer3_hi_callback()
 }
 
 
-WRITE8_MEMBER(pokemini_state::hwreg_w)
+void pokemini_state::hwreg_w(offs_t offset, uint8_t data)
 {
 	static const int timer_to_cycles_fast[8] = { 2, 8, 32, 64, 128, 256, 1024, 4096 };
 	static const int timer_to_cycles_slow[8] = { 128, 256, 512, 1024, 2048, 4096, 8192, 16384 };
@@ -1485,7 +1485,7 @@ WRITE8_MEMBER(pokemini_state::hwreg_w)
 	m_pm_reg[offset] = data;
 }
 
-READ8_MEMBER(pokemini_state::hwreg_r)
+uint8_t pokemini_state::hwreg_r(offs_t offset)
 {
 	uint8_t data = m_pm_reg[offset];
 
@@ -1768,9 +1768,9 @@ void pokemini_state::pokemini(machine_config &config)
 	MINX(config, m_maincpu, 4000000);
 	m_maincpu->set_addrmap(AS_PROGRAM, &pokemini_state::pokemini_mem_map);
 
-	config.m_minimum_quantum = attotime::from_hz(60);
+	config.set_maximum_quantum(attotime::from_hz(60));
 
-	I2CMEM(config, m_i2cmem, 0).set_data_size(0x2000);
+	I2C_24C64(config, m_i2cmem, 0); // ?
 
 	/* This still needs to be improved to actually match the hardware */
 	SCREEN(config, m_screen, SCREEN_TYPE_LCD);
@@ -1789,7 +1789,7 @@ void pokemini_state::pokemini(machine_config &config)
 	m_speaker->add_route(ALL_OUTPUTS, "mono", 0.50);
 
 	/* cartridge */
-	GENERIC_CARTSLOT(config, "cartslot", generic_plain_slot, "pokemini_cart", "bin,min").set_device_load(FUNC(pokemini_state::cart_load), this);
+	GENERIC_CARTSLOT(config, "cartslot", generic_plain_slot, "pokemini_cart", "bin,min").set_device_load(FUNC(pokemini_state::cart_load));
 
 	/* Software lists */
 	SOFTWARE_LIST(config, "cart_list").set_original("pokemini");

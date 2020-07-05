@@ -223,7 +223,6 @@ public:
 	void show_mouse(bool status);
 	virtual bool is_menu_active() override;
 	bool can_paste();
-	void paste();
 	void image_handler_ingame();
 	void increase_frameskip();
 	void decrease_frameskip();
@@ -273,8 +272,8 @@ private:
 	render_texture *        m_mouse_arrow_texture;
 	bool                    m_mouse_show;
 	ui_options              m_ui_options;
-	ui_colors				m_ui_colors;
-	float					m_target_font_height;
+	ui_colors               m_ui_colors;
+	float                   m_target_font_height;
 
 	std::unique_ptr<ui::machine_info> m_machine_info;
 

@@ -57,9 +57,9 @@ public:
 	void init_phunsy();
 
 private:
-	DECLARE_READ8_MEMBER(phunsy_data_r);
-	DECLARE_WRITE8_MEMBER(phunsy_ctrl_w);
-	DECLARE_WRITE8_MEMBER(phunsy_data_w);
+	uint8_t phunsy_data_r();
+	void phunsy_ctrl_w(uint8_t data);
+	void phunsy_data_w(uint8_t data);
 	void kbd_put(u8 data);
 	DECLARE_READ_LINE_MEMBER(cass_r);
 	DECLARE_WRITE_LINE_MEMBER(cass_w);
@@ -115,7 +115,7 @@ void phunsy_state::phunsy_data(address_map &map)
 }
 
 
-WRITE8_MEMBER( phunsy_state::phunsy_ctrl_w )
+void phunsy_state::phunsy_ctrl_w(uint8_t data)
 {
 	if (LOG)
 		logerror("%s: phunsy_ctrl_w %02x\n", machine().describe_context(), data);
@@ -131,7 +131,7 @@ WRITE8_MEMBER( phunsy_state::phunsy_ctrl_w )
 }
 
 
-WRITE8_MEMBER( phunsy_state::phunsy_data_w )
+void phunsy_state::phunsy_data_w(uint8_t data)
 {
 	if (LOG)
 		logerror("%s: phunsy_data_w %02x\n", machine().describe_context(), data);
@@ -156,7 +156,7 @@ WRITE8_MEMBER( phunsy_state::phunsy_data_w )
 }
 
 
-READ8_MEMBER( phunsy_state::phunsy_data_r )
+uint8_t phunsy_state::phunsy_data_r()
 {
 	uint8_t data = 0xff;
 
@@ -373,7 +373,7 @@ void phunsy_state::phunsy(machine_config &config)
 	m_cass->add_route(ALL_OUTPUTS, "mono", 0.05);
 
 	/* quickload */
-	QUICKLOAD(config, "quickload", "bin", attotime::from_seconds(2)).set_load_callback(FUNC(phunsy_state::quickload_cb), this);
+	QUICKLOAD(config, "quickload", "bin", attotime::from_seconds(2)).set_load_callback(FUNC(phunsy_state::quickload_cb));
 }
 
 

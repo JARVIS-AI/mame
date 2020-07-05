@@ -546,7 +546,7 @@ static const char *const reg_names[] = {
 	"FIFO_B_L",    "FIFO_B_H"
 };
 
-READ32_MEMBER(gba_state::gba_io_r)
+uint32_t gba_state::gba_io_r(offs_t offset, uint32_t mem_mask)
 {
 	uint32_t retval = 0;
 
@@ -742,7 +742,7 @@ READ32_MEMBER(gba_state::gba_io_r)
 	return retval;
 }
 
-WRITE32_MEMBER(gba_state::gba_io_w)
+void gba_state::gba_io_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	uint8_t soundcnt_x = SOUNDCNT_X;
 	uint16_t siocnt = SIOCNT;
@@ -1157,7 +1157,7 @@ WRITE32_MEMBER(gba_state::gba_io_w)
 	}
 }
 
-READ32_MEMBER(gba_state::gba_bios_r)
+uint32_t gba_state::gba_bios_r(offs_t offset, uint32_t mem_mask)
 {
 	uint32_t *rom = m_region_maincpu;
 	if (m_bios_hack->read())
@@ -1177,7 +1177,7 @@ READ32_MEMBER(gba_state::gba_bios_r)
 	return rom[offset & 0x3fff];
 }
 
-READ32_MEMBER(gba_state::gba_10000000_r)
+uint32_t gba_state::gba_10000000_r(offs_t offset, uint32_t mem_mask)
 {
 	auto &mspace = m_maincpu->space(AS_PROGRAM);
 	uint32_t data;
@@ -1250,7 +1250,7 @@ void gba_state::gba_map(address_map &map)
 	map(0x06000000, 0x06017fff).mirror(0x00fe0000).rw("lcd", FUNC(gba_lcd_device::gba_vram_r), FUNC(gba_lcd_device::gba_vram_w));  // VRAM
 	map(0x06018000, 0x0601ffff).mirror(0x00fe0000).rw("lcd", FUNC(gba_lcd_device::gba_vram_r), FUNC(gba_lcd_device::gba_vram_w));  // VRAM
 	map(0x07000000, 0x070003ff).mirror(0x00fffc00).rw("lcd", FUNC(gba_lcd_device::gba_oam_r), FUNC(gba_lcd_device::gba_oam_w));    // OAM
-	//AM_RANGE(0x08000000, 0x0cffffff)  // cart ROM + mirrors, mapped here at machine_start if a cart is present
+	//map(0x08000000, 0x0cffffff)  // cart ROM + mirrors, mapped here at machine_start if a cart is present
 	map(0x10000000, 0xffffffff).r(FUNC(gba_state::gba_10000000_r)); // for "Justice League Chronicles" (game bug)
 }
 
@@ -1337,15 +1337,15 @@ void gba_state::machine_start()
 		m_maincpu->space(AS_PROGRAM).install_read_bank(0x0c000000, 0x0cffffff, "rom3");
 
 		std::string region_tag;
-		memory_region *cart_rom = memregion(region_tag.assign(m_cart->tag()).append(GBASLOT_ROM_REGION_TAG).c_str());
+		memory_region *cart_rom = memregion(region_tag.assign(m_cart->tag()).append(GBASLOT_ROM_REGION_TAG));
 
 		// install ROM accesses
 		membank("rom1")->set_base(cart_rom->base());
 		membank("rom2")->set_base(cart_rom->base());
 		membank("rom3")->set_base(cart_rom->base());
 
-		m_maincpu->space(AS_PROGRAM).install_read_handler(0x80000c4, 0x80000cb, read32_delegate(FUNC(gba_cart_slot_device::read_gpio),(gba_cart_slot_device*)m_cart));
-		m_maincpu->space(AS_PROGRAM).install_write_handler(0x80000c4, 0x80000cb, write32_delegate(FUNC(gba_cart_slot_device::write_gpio),(gba_cart_slot_device*)m_cart));
+		m_maincpu->space(AS_PROGRAM).install_read_handler(0x80000c4, 0x80000cb, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_gpio)));
+		m_maincpu->space(AS_PROGRAM).install_write_handler(0x80000c4, 0x80000cb, write32s_delegate(*m_cart, FUNC(gba_cart_slot_device::write_gpio)));
 
 		// add nvram to save state
 		m_cart->save_nvram();
@@ -1353,41 +1353,41 @@ void gba_state::machine_start()
 		// install the cart NVRAM handlers if necessary
 		if (m_cart->get_type() == GBA_SRAM || m_cart->get_type() == GBA_DRILLDOZ || m_cart->get_type() == GBA_WARIOTWS)
 		{
-			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe000000, 0xe00ffff, read32_delegate(FUNC(gba_cart_slot_device::read_ram),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe000000, 0xe00ffff, write32_delegate(FUNC(gba_cart_slot_device::write_ram),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe010000, 0xe01ffff, read32_delegate(FUNC(gba_cart_slot_device::read_ram),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe010000, 0xe01ffff, write32_delegate(FUNC(gba_cart_slot_device::write_ram),(gba_cart_slot_device*)m_cart));
+			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe000000, 0xe00ffff, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_ram)));
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe000000, 0xe00ffff, write32s_delegate(*m_cart, FUNC(gba_cart_slot_device::write_ram)));
+			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe010000, 0xe01ffff, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_ram)));
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe010000, 0xe01ffff, write32s_delegate(*m_cart, FUNC(gba_cart_slot_device::write_ram)));
 		}
 		if (m_cart->get_type() == GBA_EEPROM || m_cart->get_type() == GBA_EEPROM4 || m_cart->get_type() == GBA_EEPROM64 || m_cart->get_type() == GBA_BOKTAI)
 		{
 			// for games larger than 16MB the actual range is smaller but read_ram/write_ram handles that!
-			m_maincpu->space(AS_PROGRAM).install_read_handler(0xd000000, 0xdffffff, read32_delegate(FUNC(gba_cart_slot_device::read_ram),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0xd000000, 0xdffffff, write32_delegate(FUNC(gba_cart_slot_device::write_ram),(gba_cart_slot_device*)m_cart));
+			m_maincpu->space(AS_PROGRAM).install_read_handler(0xd000000, 0xdffffff, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_ram)));
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0xd000000, 0xdffffff, write32s_delegate(*m_cart, FUNC(gba_cart_slot_device::write_ram)));
 		}
 		if (m_cart->get_type() == GBA_YOSHIUG)
 		{
 			// EEPROM
-			m_maincpu->space(AS_PROGRAM).install_read_handler(0xd000000, 0xdffffff, read32_delegate(FUNC(gba_cart_slot_device::read_ram),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0xd000000, 0xdffffff, write32_delegate(FUNC(gba_cart_slot_device::write_ram),(gba_cart_slot_device*)m_cart));
+			m_maincpu->space(AS_PROGRAM).install_read_handler(0xd000000, 0xdffffff, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_ram)));
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0xd000000, 0xdffffff, write32s_delegate(*m_cart, FUNC(gba_cart_slot_device::write_ram)));
 			// Tilt Sensor
-			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe008000, 0xe0085ff, read32_delegate(FUNC(gba_cart_slot_device::read_tilt),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe008000, 0xe0085ff, write32_delegate(FUNC(gba_cart_slot_device::write_tilt),(gba_cart_slot_device*)m_cart));
+			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe008000, 0xe0085ff, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_tilt)));
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe008000, 0xe0085ff, write32sm_delegate(*m_cart, FUNC(gba_cart_slot_device::write_tilt)));
 		}
 		// merge the two flash and mask accesses in read_ram?!?
 		if (m_cart->get_type() == GBA_FLASH || m_cart->get_type() == GBA_FLASH512 || m_cart->get_type() == GBA_FLASH_RTC)
 		{
-			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe000000, 0xe00ffff, read32_delegate(FUNC(gba_cart_slot_device::read_ram),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe000000, 0xe00ffff, write32_delegate(FUNC(gba_cart_slot_device::write_ram),(gba_cart_slot_device*)m_cart));
+			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe000000, 0xe00ffff, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_ram)));
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe000000, 0xe00ffff, write32s_delegate(*m_cart, FUNC(gba_cart_slot_device::write_ram)));
 		}
 		if (m_cart->get_type() == GBA_FLASH1M || m_cart->get_type() == GBA_FLASH1M_RTC)
 		{
-			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe000000, 0xe01ffff, read32_delegate(FUNC(gba_cart_slot_device::read_ram),(gba_cart_slot_device*)m_cart));
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe000000, 0xe01ffff, write32_delegate(FUNC(gba_cart_slot_device::write_ram),(gba_cart_slot_device*)m_cart));
+			m_maincpu->space(AS_PROGRAM).install_read_handler(0xe000000, 0xe01ffff, read32s_delegate(*m_cart, FUNC(gba_cart_slot_device::read_ram)));
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0xe000000, 0xe01ffff, write32s_delegate(*m_cart, FUNC(gba_cart_slot_device::write_ram)));
 		}
 		if (m_cart->get_type() == GBA_3DMATRIX)
 		{
-			m_maincpu->space(AS_PROGRAM).install_write_handler(0x08800000, 0x088001ff, write32_delegate(FUNC(gba_cart_slot_device::write_mapper),(gba_cart_slot_device*)m_cart));
-			memory_region *cart_romhlp = memregion(region_tag.assign(m_cart->tag()).append(GBAHELP_ROM_REGION_TAG).c_str());
+			m_maincpu->space(AS_PROGRAM).install_write_handler(0x08800000, 0x088001ff, write32sm_delegate(*m_cart, FUNC(gba_cart_slot_device::write_mapper)));
+			memory_region *cart_romhlp = memregion(region_tag.assign(m_cart->tag()).append(GBAHELP_ROM_REGION_TAG));
 			membank("rom1")->set_base(cart_romhlp->base());
 		}
 

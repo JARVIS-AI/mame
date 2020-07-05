@@ -210,7 +210,7 @@ WRITE_LINE_MEMBER(trackfld_state::coin_counter_2_w)
 	machine().bookkeeping().coin_counter_w(1, state);
 }
 
-WRITE8_MEMBER(trackfld_state::questions_bank_w)
+void trackfld_state::questions_bank_w(uint8_t data)
 {
 	for (int i = 0; i < 8; i++)
 	{
@@ -239,7 +239,7 @@ void trackfld_state::main_map(address_map &map)
 	map(0x1281, 0x1281).mirror(0x007c).portr("IN0");
 	map(0x1282, 0x1282).mirror(0x007c).portr("IN1");
 	map(0x1283, 0x1283).mirror(0x007c).portr("DSW1");
-	/* not used according to schems: AM_RANGE(0x1300, 0x1300) AM_MIRROR(0x007f) AM_READ_PORT("DSW3") */
+	/* not used according to schems: map(0x1300, 0x1300).mirror(0x007f).portr("DSW3"); */
 	map(0x1800, 0x183f).ram().share(m_spriteram2);
 	map(0x1840, 0x185f).ram().share(m_scroll);
 	map(0x1860, 0x1bff).ram();
@@ -259,7 +259,7 @@ WRITE_LINE_MEMBER(trackfld_state::nmi_mask_w)
 		m_maincpu->set_input_line(INPUT_LINE_NMI, CLEAR_LINE);
 }
 
-READ8_MEMBER(trackfld_state::trackfld_speech_r)
+uint8_t trackfld_state::trackfld_speech_r()
 {
 	if (m_vlm->bsy())
 		return 1;
@@ -267,7 +267,7 @@ READ8_MEMBER(trackfld_state::trackfld_speech_r)
 		return 0;
 }
 
-WRITE8_MEMBER(trackfld_state::trackfld_VLM5030_control_w)
+void trackfld_state::trackfld_VLM5030_control_w(uint8_t data)
 {
 	/* bit 0 is latch direction */
 	m_vlm->st((data >> 1) & 1);
@@ -283,7 +283,7 @@ void trackfld_state::yieartf_map(address_map &map)
 	map(0x0003, 0x0003).w(m_vlm, FUNC(vlm5030_device::data_w));
 	map(0x1000, 0x1000).mirror(0x007f).w("watchdog", FUNC(watchdog_timer_device::reset_w));       /* AFE */
 	map(0x1080, 0x1087).mirror(0x0078).w(m_mainlatch, FUNC(ls259_device::write_d0));
-//  AM_RANGE(0x1100, 0x1100) AM_MIRROR(0x007f) AM_DEVWRITE("soundlatch", generic_latch_8_device, write)     /* 32 */
+//  map(0x1100, 0x1100).mirror(0x007f).w("soundlatch", FUNC(generic_latch_8_device::write));     /* 32 */
 	map(0x1200, 0x1200).mirror(0x007f).portr("DSW2");
 	map(0x1280, 0x1280).mirror(0x007c).portr("SYSTEM");
 	map(0x1281, 0x1281).mirror(0x007c).portr("IN0");
@@ -344,7 +344,7 @@ void trackfld_state::mastkin_map(address_map &map)
 	map(0x1200, 0x1200).portr("DSW2");
 	map(0x1280, 0x1280).portr("SYSTEM");
 	map(0x1281, 0x1281).portr("IN0");
-//  AM_RANGE(0x1282, 0x1282) AM_READ_PORT("IN1") /* unused */
+//  map(0x1282, 0x1282).portr("IN1"); /* unused */
 	map(0x1283, 0x1283).portr("DSW1");
 	map(0x1800, 0x183f).ram().share(m_spriteram2);
 	map(0x1840, 0x185f).ram().share(m_scroll);
@@ -387,9 +387,9 @@ void trackfld_state::wizzquiz_map(address_map &map)
 }
 
 
-READ8_MEMBER(trackfld_state::trackfld_SN76496_r)
+uint8_t trackfld_state::trackfld_SN76496_r()
 {
-	konami_SN76496_w(space, 0, 0);
+	konami_SN76496_w(0);
 	return 0xff; // ?
 }
 
@@ -1032,7 +1032,6 @@ void trackfld_state::yieartf(machine_config &config)
 
 void trackfld_state::hyprolyb_adpcm_map(address_map &map)
 {
-	map(0x0000, 0x007f).ram();
 	map(0x1000, 0x1000).r("hyprolyb_adpcm", FUNC(hyprolyb_adpcm_device::data_r));
 	map(0x1001, 0x1001).r("hyprolyb_adpcm", FUNC(hyprolyb_adpcm_device::ready_r));
 	map(0x1002, 0x1002).w("hyprolyb_adpcm", FUNC(hyprolyb_adpcm_device::msm_data_w));
@@ -1059,7 +1058,7 @@ void trackfld_state::hyprolyb(machine_config &config)
 {
 	trackfld(config);
 
-	m_audiocpu->set_addrmap(AS_PROGRAM, address_map_constructor(&std::remove_pointer_t<decltype(this)>::hyprolyb_sound_map, tag(), this));
+	m_audiocpu->set_addrmap(AS_PROGRAM, &trackfld_state::hyprolyb_sound_map);
 
 	MCFG_MACHINE_START_OVERRIDE(trackfld_state,trackfld)
 	MCFG_MACHINE_RESET_OVERRIDE(trackfld_state,trackfld)
@@ -1658,7 +1657,7 @@ void trackfld_state::init_atlantol()
 
 	downcast<konami1_device &>(*m_maincpu).set_encryption_boundary(0x6000);
 
-	space.install_write_handler(0x0800, 0x0800, write8_delegate(FUNC(trackfld_state::atlantol_gfxbank_w),this));
+	space.install_write_handler(0x0800, 0x0800, write8smo_delegate(*this, FUNC(trackfld_state::atlantol_gfxbank_w)));
 	space.nop_write(0x1000, 0x1000);
 
 	/* unmapped areas read as ROM */
@@ -1718,8 +1717,8 @@ GAME( 1983, hyprolym,   trackfld, trackfld,  trackfld, trackfld_state, init_trac
 GAME( 1983, hyprolymb,  trackfld, hyprolyb,  trackfld, trackfld_state, init_trackfld,   ROT0,  "bootleg",                              "Hyper Olympic (bootleg, set 1)",       MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE )
 GAME( 1983, hyprolymba, trackfld, hyprolyb,  trackfld, trackfld_state, init_trackfld,   ROT0,  "bootleg",                              "Hyper Olympic (bootleg, set 2)",       MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE )
 GAME( 1983, hipoly,     trackfld, hyprolyb,  trackfld, trackfld_state, init_trackfld,   ROT0,  "bootleg",                              "Hipoly (bootleg of Hyper Olympic)",    MACHINE_NOT_WORKING | MACHINE_SUPPORTS_SAVE )
-GAME( 1996, atlantol,   trackfld, atlantol,  atlantol, trackfld_state, init_atlantol,   ROT0,  "bootleg",                              "Atlant Olimpic",                       MACHINE_SUPPORTS_SAVE )
-GAME( 1982, trackfldnz, trackfld, trackfld,  trackfld, trackfld_state, init_trackfldnz, ROT0,  "bootleg? (Goldberg Enterprizes Inc.)", "Track & Field (NZ bootleg?)",          MACHINE_SUPPORTS_SAVE) // bootleg of the Centuri version
+GAME( 1996, atlantol,   trackfld, atlantol,  atlantol, trackfld_state, init_atlantol,   ROT0,  "bootleg",                              "Atlant Olimpic (Italian bootleg)",     MACHINE_SUPPORTS_SAVE )
+GAME( 1982, trackfldnz, trackfld, trackfld,  trackfld, trackfld_state, init_trackfldnz, ROT0,  "bootleg? (Goldberg Enterprizes Inc.)", "Track & Field (NZ bootleg?)",          MACHINE_SUPPORTS_SAVE ) // bootleg of the Centuri version
 
 GAME( 1988, mastkin,    0,        mastkin,   mastkin,  trackfld_state, init_mastkin,    ROT0,  "Du Tech",                              "The Masters of Kin", MACHINE_WRONG_COLORS | MACHINE_SUPPORTS_SAVE )
 
@@ -1728,4 +1727,4 @@ GAME( 1985, wizzquiza,  wizzquiz, wizzquiz,  wizzquiz, trackfld_state, init_wizz
 
 GAME( 1987, reaktor,    0,        reaktor,   reaktor,  trackfld_state, empty_init,      ROT90, "Zilec",                                "Reaktor (Track & Field conversion)", MACHINE_SUPPORTS_SAVE )
 
-GAME( 1985, yieartf,    yiear,    yieartf,   yieartf,  trackfld_state, empty_init,      ROT0,  "Konami",                               "Yie Ar Kung-Fu (GX361 conversion)", MACHINE_SUPPORTS_SAVE ) // the conversion looks of bootleg quality, but the code is clearly a very different revision to either original hardware set...
+GAME( 1985, yieartf,    yiear,    yieartf,   yieartf,  trackfld_state, empty_init,      ROT0,  "bootleg",                              "Yie Ar Kung-Fu (bootleg GX361 conversion)", MACHINE_SUPPORTS_SAVE ) // the conversion looks of bootleg quality, but the code is clearly a very different revision to either original hardware set...

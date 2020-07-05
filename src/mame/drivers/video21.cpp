@@ -45,15 +45,15 @@ public:
 	{ }
 
 	void video21(machine_config &config);
-	DECLARE_CUSTOM_INPUT_MEMBER(hopper_coinout_r);
+	DECLARE_READ_LINE_MEMBER(hopper_coinout_r);
 
 protected:
 	virtual void machine_start() override;
 
 private:
-	DECLARE_WRITE8_MEMBER(sound_w);
-	DECLARE_WRITE8_MEMBER(lamp1_w);
-	DECLARE_WRITE8_MEMBER(lamp2_w);
+	void sound_w(uint8_t data);
+	void lamp1_w(uint8_t data);
+	void lamp2_w(uint8_t data);
 
 	int m_hopper_motor;
 	int m_hopper_coin;
@@ -112,14 +112,14 @@ TIMER_CALLBACK_MEMBER(video21_state::hopper_coinout)
 		m_hopper_timer->adjust(attotime::from_msec(100), m_hopper_coin ^ 1);
 }
 
-WRITE8_MEMBER(video21_state::sound_w)
+void video21_state::sound_w(uint8_t data)
 {
 	// beeper pitch
 	m_beeper->set_state(data != 0xff); // FF is off
 	m_beeper->set_clock(4 * data);
 }
 
-WRITE8_MEMBER(video21_state::lamp1_w)
+void video21_state::lamp1_w(uint8_t data)
 {
 	// d1-d3: coincounters
 	machine().bookkeeping().coin_counter_w(0, data & 0x04); // coin in
@@ -139,7 +139,7 @@ WRITE8_MEMBER(video21_state::lamp1_w)
 		m_lamps[i+0] = BIT(data, 7-i);
 }
 
-WRITE8_MEMBER(video21_state::lamp2_w)
+void video21_state::lamp2_w(uint8_t data)
 {
 	// lamps:
 	// d5: bet
@@ -166,7 +166,7 @@ void video21_state::io_map(address_map &map) {
 }
 
 
-CUSTOM_INPUT_MEMBER(video21_state::hopper_coinout_r)
+READ_LINE_MEMBER(video21_state::hopper_coinout_r)
 {
 	return m_hopper_coin;
 }
@@ -203,7 +203,7 @@ static INPUT_PORTS_START( video21 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_GAMBLE_DEAL ) PORT_NAME("Card")
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_GAMBLE_STAND ) PORT_NAME("Stop")
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_GAMBLE_KEYOUT )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, video21_state, hopper_coinout_r, nullptr)
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(video21_state, hopper_coinout_r)
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_CUSTOM ) PORT_VBLANK("screen")
 
 	PORT_START("IN44")

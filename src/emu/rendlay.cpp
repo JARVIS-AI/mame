@@ -2,7 +2,7 @@
 // copyright-holders:Aaron Giles, Vas Crabb
 /***************************************************************************
 
-    rendlay.c
+    rendlay.cpp
 
     Core rendering layout parser and manager.
 
@@ -18,7 +18,7 @@
 #include "vecstream.h"
 #include "xmlfile.h"
 
-#include <ctype.h>
+#include <cctype>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -205,7 +205,6 @@ private:
 					{
 						std::istringstream stream(m_text);
 						stream.imbue(f_portable_locale);
-						m_text.c_str();
 						if (m_text[0] == '$')
 						{
 							stream.get();
@@ -242,7 +241,6 @@ private:
 					{
 						std::istringstream stream(m_text);
 						stream.imbue(f_portable_locale);
-						m_text.c_str();
 						if (m_text[0] == '$')
 						{
 							stream.get();
@@ -302,7 +300,6 @@ private:
 					{
 						std::istringstream stream(m_text);
 						stream.imbue(f_portable_locale);
-						m_text.c_str();
 						if (m_text[0] == '$')
 						{
 							stream.get();
@@ -844,14 +841,6 @@ public:
 
 
 //**************************************************************************
-//  GLOBAL VARIABLES
-//**************************************************************************
-
-render_screen_list render_target::s_empty_screen_list;
-
-
-
-//**************************************************************************
 //  LAYOUT ELEMENT
 //**************************************************************************
 
@@ -1062,8 +1051,9 @@ void layout_group::resolve_bounds(environment &env, group_map &groupmap, std::ve
 	seen.push_back(this);
 	if (!m_bounds_resolved)
 	{
+		set_render_bounds_xy(m_bounds, 0.0F, 0.0F, 1.0F, 1.0F);
 		environment local(env);
-		resolve_bounds(local, m_groupnode, groupmap, seen, false, true);
+		resolve_bounds(local, m_groupnode, groupmap, seen, true, false, true);
 	}
 	seen.pop_back();
 }
@@ -1073,6 +1063,7 @@ void layout_group::resolve_bounds(
 		util::xml::data_node const &parentnode,
 		group_map &groupmap,
 		std::vector<layout_group const *> &seen,
+		bool empty,
 		bool repeat,
 		bool init)
 {
@@ -1110,7 +1101,11 @@ void layout_group::resolve_bounds(
 		{
 			render_bounds itembounds;
 			env.parse_bounds(itemnode->get_child("bounds"), itembounds);
-			union_render_bounds(m_bounds, itembounds);
+			if (empty)
+				m_bounds = itembounds;
+			else
+				union_render_bounds(m_bounds, itembounds);
+			empty = false;
 		}
 		else if (!strcmp(itemnode->get_name(), "group"))
 		{
@@ -1119,7 +1114,11 @@ void layout_group::resolve_bounds(
 			{
 				render_bounds itembounds;
 				env.parse_bounds(itemboundsnode, itembounds);
-				union_render_bounds(m_bounds, itembounds);
+				if (empty)
+					m_bounds = itembounds;
+				else
+					union_render_bounds(m_bounds, itembounds);
+				empty = false;
 			}
 			else
 			{
@@ -1139,7 +1138,11 @@ void layout_group::resolve_bounds(
 						found->second.m_bounds.y0,
 						(orientation & ORIENTATION_SWAP_XY) ? (found->second.m_bounds.x0 + found->second.m_bounds.y1 - found->second.m_bounds.y0) : found->second.m_bounds.x1,
 						(orientation & ORIENTATION_SWAP_XY) ? (found->second.m_bounds.y0 + found->second.m_bounds.x1 - found->second.m_bounds.x0) : found->second.m_bounds.y1 };
-				union_render_bounds(m_bounds, itembounds);
+				if (empty)
+					m_bounds = itembounds;
+				else
+					union_render_bounds(m_bounds, itembounds);
+				empty = false;
 			}
 		}
 		else if (!strcmp(itemnode->get_name(), "repeat"))
@@ -1150,7 +1153,7 @@ void layout_group::resolve_bounds(
 			environment local(env);
 			for (int i = 0; !m_bounds_resolved && (count > i); ++i)
 			{
-				resolve_bounds(local, *itemnode, groupmap, seen, true, !i);
+				resolve_bounds(local, *itemnode, groupmap, seen, empty, true, !i);
 				local.increment_parameters();
 			}
 		}
@@ -1287,9 +1290,9 @@ private:
 
 			// log an error
 			if (m_alphafile.empty())
-				osd_printf_warning("Unable to load component bitmap '%s'\n", m_imagefile.c_str());
+				osd_printf_warning("Unable to load component bitmap '%s'\n", m_imagefile);
 			else
-				osd_printf_warning("Unable to load component bitmap '%s'/'%s'\n", m_imagefile.c_str(), m_alphafile.c_str());
+				osd_printf_warning("Unable to load component bitmap '%s'/'%s'\n", m_imagefile, m_alphafile);
 		}
 	}
 
@@ -1455,7 +1458,7 @@ protected:
 	virtual void draw(running_machine &machine, bitmap_argb32 &dest, const rectangle &bounds, int state) override
 	{
 		const rgb_t onpen = rgb_t(0xff,0xff,0xff,0xff);
-		const rgb_t offpen = rgb_t(0xff,0x20,0x20,0x20);
+		const rgb_t offpen = rgb_t(0x20,0xff,0xff,0xff);
 
 		// sizes for computation
 		int bmwidth = 250;
@@ -1465,7 +1468,7 @@ protected:
 
 		// allocate a temporary bitmap for drawing
 		bitmap_argb32 tempbitmap(bmwidth + skewwidth, bmheight);
-		tempbitmap.fill(rgb_t(0xff,0x00,0x00,0x00));
+		tempbitmap.fill(rgb_t(0x00,0x00,0x00,0x00));
 
 		// top bar
 		draw_segment_horizontal(tempbitmap, 0 + 2*segwidth/3, bmwidth - 2*segwidth/3, 0 + segwidth/2, segwidth, BIT(state, 0) ? onpen : offpen);
@@ -1517,8 +1520,8 @@ protected:
 	virtual void draw(running_machine &machine, bitmap_argb32 &dest, const rectangle &bounds, int state) override
 	{
 		const rgb_t onpen = rgb_t(0xff,0xff,0xff,0xff);
-		const rgb_t offpen = rgb_t(0xff,0x20,0x20,0x20);
-		const rgb_t backpen = rgb_t(0xff,0x00,0x00,0x00);
+		const rgb_t offpen = rgb_t(0x20,0xff,0xff,0xff);
+		const rgb_t backpen = rgb_t(0x00,0x00,0x00,0x00);
 
 		// sizes for computation
 		int bmwidth = 250;
@@ -1585,7 +1588,7 @@ protected:
 	virtual void draw(running_machine &machine, bitmap_argb32 &dest, const rectangle &bounds, int state) override
 	{
 		const rgb_t onpen = rgb_t(0xff, 0xff, 0xff, 0xff);
-		const rgb_t offpen = rgb_t(0xff, 0x20, 0x20, 0x20);
+		const rgb_t offpen = rgb_t(0x20, 0xff, 0xff, 0xff);
 
 		// sizes for computation
 		int bmwidth = 250;
@@ -1595,7 +1598,7 @@ protected:
 
 		// allocate a temporary bitmap for drawing
 		bitmap_argb32 tempbitmap(bmwidth + skewwidth, bmheight);
-		tempbitmap.fill(rgb_t(0xff, 0x00, 0x00, 0x00));
+		tempbitmap.fill(rgb_t(0x00, 0x00, 0x00, 0x00));
 
 		// top bar
 		draw_segment_horizontal(tempbitmap,
@@ -1697,7 +1700,7 @@ protected:
 	virtual void draw(running_machine &machine, bitmap_argb32 &dest, const rectangle &bounds, int state) override
 	{
 		const rgb_t onpen = rgb_t(0xff, 0xff, 0xff, 0xff);
-		const rgb_t offpen = rgb_t(0xff, 0x20, 0x20, 0x20);
+		const rgb_t offpen = rgb_t(0x20, 0xff, 0xff, 0xff);
 
 		// sizes for computation
 		int bmwidth = 250;
@@ -1707,7 +1710,7 @@ protected:
 
 		// allocate a temporary bitmap for drawing
 		bitmap_argb32 tempbitmap(bmwidth + skewwidth, bmheight);
-		tempbitmap.fill(rgb_t(0xff, 0x00, 0x00, 0x00));
+		tempbitmap.fill(rgb_t(0x00, 0x00, 0x00, 0x00));
 
 		// top-left bar
 		draw_segment_horizontal_caps(tempbitmap,
@@ -1819,7 +1822,7 @@ protected:
 	virtual void draw(running_machine &machine, bitmap_argb32 &dest, const rectangle &bounds, int state) override
 	{
 		const rgb_t onpen = rgb_t(0xff, 0xff, 0xff, 0xff);
-		const rgb_t offpen = rgb_t(0xff, 0x20, 0x20, 0x20);
+		const rgb_t offpen = rgb_t(0x20, 0xff, 0xff, 0xff);
 
 		// sizes for computation
 		int bmwidth = 250;
@@ -1829,7 +1832,7 @@ protected:
 
 		// allocate a temporary bitmap for drawing, adding some extra space for the tail
 		bitmap_argb32 tempbitmap(bmwidth + skewwidth, bmheight + segwidth);
-		tempbitmap.fill(rgb_t(0xff, 0x00, 0x00, 0x00));
+		tempbitmap.fill(rgb_t(0x00, 0x00, 0x00, 0x00));
 
 		// top bar
 		draw_segment_horizontal(tempbitmap,
@@ -1940,7 +1943,7 @@ protected:
 	virtual void draw(running_machine &machine, bitmap_argb32 &dest, const rectangle &bounds, int state) override
 	{
 		const rgb_t onpen = rgb_t(0xff, 0xff, 0xff, 0xff);
-		const rgb_t offpen = rgb_t(0xff, 0x20, 0x20, 0x20);
+		const rgb_t offpen = rgb_t(0x20, 0xff, 0xff, 0xff);
 
 		// sizes for computation
 		int bmwidth = 250;
@@ -1950,7 +1953,7 @@ protected:
 
 		// allocate a temporary bitmap for drawing
 		bitmap_argb32 tempbitmap(bmwidth + skewwidth, bmheight + segwidth);
-		tempbitmap.fill(rgb_t(0xff, 0x00, 0x00, 0x00));
+		tempbitmap.fill(rgb_t(0x00, 0x00, 0x00, 0x00));
 
 		// top-left bar
 		draw_segment_horizontal_caps(tempbitmap,
@@ -2091,7 +2094,7 @@ protected:
 
 private:
 	// internal state
-	int                 m_dots;
+	int m_dots;
 };
 
 
@@ -2146,14 +2149,14 @@ public:
 		// split out position names from string and figure out our number of symbols
 		int location;
 		m_numstops = 0;
-		location=symbollist.find(",");
+		location=symbollist.find(',');
 		while (location!=-1)
 		{
 			m_stopnames[m_numstops] = symbollist;
 			m_stopnames[m_numstops] = m_stopnames[m_numstops].substr(0, location);
 			symbollist = symbollist.substr(location+1, symbollist.length()-(location-1));
 			m_numstops++;
-			location=symbollist.find(",");
+			location=symbollist.find(',');
 		}
 		m_stopnames[m_numstops++] = symbollist;
 
@@ -2163,7 +2166,7 @@ public:
 
 		for (int i=0;i<m_numstops;i++)
 		{
-			location=m_stopnames[i].find(":");
+			location=m_stopnames[i].find(':');
 			if (location!=-1)
 			{
 				m_imagefile[i] = m_stopnames[i];
@@ -2456,8 +2459,7 @@ private:
 					// allocate a temporary bitmap
 					bitmap_argb32 tempbitmap(dest.width(), dest.height());
 
-
-					const char *origs =m_stopnames[fruit].c_str();
+					const char *origs = m_stopnames[fruit].c_str();
 					const char *ends = origs + strlen(origs);
 					const char *s = origs;
 					char32_t schar;
@@ -2971,24 +2973,29 @@ layout_view::layout_view(
 	add_items(layers, local, viewnode, elemmap, groupmap, ROT0, identity_transform, render_color{ 1.0F, 1.0F, 1.0F, 1.0F }, true, false, true);
 
 	// deal with legacy element groupings
-	if ((layers.backdrops.size() > 1) && layers.overlays.empty())
+	if (!layers.overlays.empty() || (layers.backdrops.size() <= 1))
 	{
-		// multiple backdrop pieces and no overlays (Golly! Ghost! mode):
-		// backdrop (alpha) + screens (add) + bezels (alpha) + cpanels (alpha) + marquees (alpha)
-		m_items.splice(m_items.end(), layers.backdrops);
+		// screens (-1) + overlays (RGB multiply) + backdrop (add) + bezels (alpha) + cpanels (alpha) + marquees (alpha)
+		for (item &backdrop : layers.backdrops)
+			backdrop.set_blend_mode(BLENDMODE_ADD);
 		m_items.splice(m_items.end(), layers.screens);
+		m_items.splice(m_items.end(), layers.overlays);
+		m_items.splice(m_items.end(), layers.backdrops);
 		m_items.splice(m_items.end(), layers.bezels);
 		m_items.splice(m_items.end(), layers.cpanels);
 		m_items.splice(m_items.end(), layers.marquees);
 	}
 	else
 	{
-		// screens (add) + overlays (RGB multiply) + backdrop (add) + bezels (alpha) + cpanels (alpha) + marquees (alpha)
-		for (item &backdrop : layers.backdrops)
-			backdrop.set_blend_mode(BLENDMODE_ADD);
-		m_items.splice(m_items.end(), layers.screens);
-		m_items.splice(m_items.end(), layers.overlays);
+		// multiple backdrop pieces and no overlays (Golly! Ghost! mode):
+		// backdrop (alpha) + screens (add) + bezels (alpha) + cpanels (alpha) + marquees (alpha)
+		for (item &screen : layers.screens)
+		{
+			if (screen.blend_mode() == -1)
+				screen.set_blend_mode(BLENDMODE_ADD);
+		}
 		m_items.splice(m_items.end(), layers.backdrops);
+		m_items.splice(m_items.end(), layers.screens);
 		m_items.splice(m_items.end(), layers.bezels);
 		m_items.splice(m_items.end(), layers.cpanels);
 		m_items.splice(m_items.end(), layers.marquees);
@@ -3011,6 +3018,17 @@ layout_view::~layout_view()
 
 
 //-------------------------------------------------
+//  has_screen - return true if this view contains
+//  the given screen
+//-------------------------------------------------
+
+bool layout_view::has_screen(screen_device &screen) const
+{
+	return std::find_if(m_screens.begin(), m_screens.end(), [&screen](auto const &scr) { return &scr.get() == &screen; }) != m_screens.end();
+}
+
+
+//-------------------------------------------------
 //  recompute - recompute the bounds and aspect
 //  ratio of a view and all of its contained items
 //-------------------------------------------------
@@ -3020,7 +3038,7 @@ void layout_view::recompute(render_layer_config layerconfig)
 	// reset the bounds
 	m_bounds.x0 = m_bounds.y0 = m_bounds.x1 = m_bounds.y1 = 0.0f;
 	m_scrbounds.x0 = m_scrbounds.y0 = m_scrbounds.x1 = m_scrbounds.y1 = 0.0f;
-	m_screens.reset();
+	m_screens.clear();
 
 	// loop over all layers
 	bool first = true;
@@ -3044,7 +3062,7 @@ void layout_view::recompute(render_layer_config layerconfig)
 			scrfirst = false;
 
 			// accumulate the screens in use while we're scanning
-			m_screens.add(*curitem.m_screen);
+			m_screens.emplace_back(*curitem.m_screen);
 		}
 	}
 
@@ -3054,7 +3072,7 @@ void layout_view::recompute(render_layer_config layerconfig)
 
 	// if we're handling things normally, the target bounds are (0,0)-(1,1)
 	render_bounds target_bounds;
-	if (!layerconfig.zoom_to_screen() || m_screens.count() == 0)
+	if (!layerconfig.zoom_to_screen() || m_screens.empty())
 	{
 		// compute the aspect ratio of the view
 		m_aspect = (m_bounds.x1 - m_bounds.x0) / (m_bounds.y1 - m_bounds.y0);
@@ -3297,18 +3315,12 @@ layout_view::item::item(
 	, m_color(render_color_multiply(env.parse_color(itemnode.get_child("color")), color))
 	, m_blend_mode(get_blend_mode(env, itemnode))
 {
-	// outputs need resolving
-	if (m_have_output)
-		m_output.resolve();
-
 	// fetch common data
 	int index = env.get_attribute_int(itemnode, "index", -1);
 	if (index != -1)
 		m_screen = screen_device_iterator(env.machine().root_device()).byindex(index);
 	for (u32 mask = m_input_mask; (mask != 0) && (~mask & 1); mask >>= 1)
 		m_input_shift++;
-	if (m_have_output && m_element)
-		m_output = m_element->default_state();
 
 	// sanity checks
 	if (strcmp(itemnode.get_name(), "screen") == 0)
@@ -3393,9 +3405,16 @@ int layout_view::item::state() const
 
 void layout_view::item::resolve_tags()
 {
+	if (m_have_output)
+	{
+		m_output.resolve();
+		if (m_element)
+			m_output = m_element->default_state();
+	}
+
 	if (!m_input_tag.empty())
 	{
-		m_input_port = m_element->machine().root_device().ioport(m_input_tag.c_str());
+		m_input_port = m_element->machine().root_device().ioport(m_input_tag);
 		if (m_input_port)
 		{
 			for (ioport_field &field : m_input_port->fields())
@@ -3486,7 +3505,7 @@ int layout_view::item::get_blend_mode(environment &env, util::xml::data_node con
 
 	// fall back to implicit blend mode based on element type
 	if (!strcmp(itemnode.get_name(), "screen"))
-		return BLENDMODE_ADD;
+		return -1; // magic number recognised by render.cpp to allow per-element blend mode
 	else if (!strcmp(itemnode.get_name(), "overlay"))
 		return BLENDMODE_RGB_MULTIPLY;
 	else

@@ -67,23 +67,23 @@ f80b      ????
 #include "speaker.h"
 
 
-WRITE8_MEMBER(tecmo_state::bankswitch_w)
+void tecmo_state::bankswitch_w(uint8_t data)
 {
 	m_mainbank->set_entry(data >> 3);
 }
 
-WRITE8_MEMBER(tecmo_state::adpcm_start_w)
+void tecmo_state::adpcm_start_w(uint8_t data)
 {
 	m_adpcm_pos = data << 8;
 	m_msm->reset_w(0);
 }
 
-WRITE8_MEMBER(tecmo_state::adpcm_end_w)
+void tecmo_state::adpcm_end_w(uint8_t data)
 {
 	m_adpcm_end = (data + 1) << 8;
 }
 
-WRITE8_MEMBER(tecmo_state::adpcm_vol_w)
+void tecmo_state::adpcm_vol_w(uint8_t data)
 {
 	m_msm->set_output_gain(ALL_OUTPUTS, (data & 15) / 15.0);
 }
@@ -95,39 +95,39 @@ WRITE_LINE_MEMBER(tecmo_state::adpcm_int)
 		m_msm->reset_w(1);
 	else if (m_adpcm_data != -1)
 	{
-		m_msm->write_data(m_adpcm_data & 0x0f);
+		m_msm->data_w(m_adpcm_data & 0x0f);
 		m_adpcm_data = -1;
 	}
 	else
 	{
 		m_adpcm_data = m_adpcm_rom[m_adpcm_pos++];
-		m_msm->write_data(m_adpcm_data >> 4);
+		m_msm->data_w(m_adpcm_data >> 4);
 	}
 }
 
 /* the 8-bit dipswitches are split across addresses */
-READ8_MEMBER(tecmo_state::dswa_l_r)
+uint8_t tecmo_state::dswa_l_r()
 {
 	uint8_t port = ioport("DSWA")->read();
 	port &= 0x0f;
 	return port;
 }
 
-READ8_MEMBER(tecmo_state::dswa_h_r)
+uint8_t tecmo_state::dswa_h_r()
 {
 	uint8_t port = ioport("DSWA")->read();
 	port &= 0xf0;
 	return port>>4;
 }
 
-READ8_MEMBER(tecmo_state::dswb_l_r)
+uint8_t tecmo_state::dswb_l_r()
 {
 	uint8_t port = ioport("DSWB")->read();
 	port &= 0x0f;
 	return port;
 }
 
-READ8_MEMBER(tecmo_state::dswb_h_r)
+uint8_t tecmo_state::dswb_h_r()
 {
 	uint8_t port = ioport("DSWB")->read();
 	port &= 0xf0;
@@ -654,33 +654,11 @@ static INPUT_PORTS_START( silkwormp )
 INPUT_PORTS_END
 
 
-static const gfx_layout charlayout =
-{
-	8,8,
-	RGN_FRAC(1,1),
-	4,
-	{ STEP4(0,1) },
-	{ STEP8(0,4) },
-	{ STEP8(0,4*8) },
-	4*8*8
-};
-
-static const gfx_layout tilelayout =
-{
-	16,16,
-	RGN_FRAC(1,1),
-	4,
-	{ STEP4(0,1) },
-	{ STEP8(0,4), STEP8(4*8*8,4) },
-	{ STEP8(0,4*8), STEP8(4*8*8*2,4*8) },
-	4*8*8*2*2
-};
-
 static GFXDECODE_START( gfx_tecmo )
-	GFXDECODE_ENTRY( "gfx1", 0, charlayout, 256, 16 )   /* colors 256 - 511 */
-	GFXDECODE_ENTRY( "gfx2", 0, charlayout,   0, 16 )   /* colors   0 - 255 */
-	GFXDECODE_ENTRY( "gfx3", 0, tilelayout, 512, 16 )   /* colors 512 - 767 */
-	GFXDECODE_ENTRY( "gfx4", 0, tilelayout, 768, 16 )   /* colors 768 - 1023 */
+	GFXDECODE_ENTRY( "gfx1", 0, gfx_8x8x4_packed_msb,               256, 16 )   /* colors 256 - 511 */
+	GFXDECODE_ENTRY( "gfx2", 0, gfx_8x8x4_packed_msb,                 0, 16 )   /* colors   0 - 255 */
+	GFXDECODE_ENTRY( "gfx3", 0, gfx_8x8x4_row_2x2_group_packed_msb, 512, 16 )   /* colors 512 - 767 */
+	GFXDECODE_ENTRY( "gfx4", 0, gfx_8x8x4_row_2x2_group_packed_msb, 768, 16 )   /* colors 768 - 1023 */
 GFXDECODE_END
 
 

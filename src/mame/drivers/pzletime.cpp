@@ -23,6 +23,7 @@
 #include "emupal.h"
 #include "screen.h"
 #include "speaker.h"
+#include "tilemap.h"
 
 
 class pzletime_state : public driver_device
@@ -46,7 +47,7 @@ public:
 
 	void pzletime(machine_config &config);
 
-	DECLARE_CUSTOM_INPUT_MEMBER(ticket_status_r);
+	DECLARE_READ_LINE_MEMBER(ticket_status_r);
 
 private:
 	/* memory pointers */
@@ -63,12 +64,12 @@ private:
 
 	/* misc */
 	int            m_ticket;
-	DECLARE_WRITE16_MEMBER(mid_videoram_w);
-	DECLARE_WRITE16_MEMBER(txt_videoram_w);
-	DECLARE_WRITE16_MEMBER(ticket_w);
-	DECLARE_WRITE16_MEMBER(video_regs_w);
-	DECLARE_WRITE16_MEMBER(eeprom_w);
-	DECLARE_WRITE16_MEMBER(oki_bank_w);
+	void mid_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void txt_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void ticket_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void video_regs_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void eeprom_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void oki_bank_w(uint16_t data);
 	TILE_GET_INFO_MEMBER(get_mid_tile_info);
 	TILE_GET_INFO_MEMBER(get_txt_tile_info);
 	virtual void machine_start() override;
@@ -91,7 +92,7 @@ TILE_GET_INFO_MEMBER(pzletime_state::get_mid_tile_info)
 	int tileno = m_mid_videoram[tile_index] & 0x0fff;
 	int colour = m_mid_videoram[tile_index] & 0xf000;
 	colour = colour >> 12;
-	SET_TILE_INFO_MEMBER(2, tileno, colour, 0);
+	tileinfo.set(2, tileno, colour, 0);
 }
 
 TILE_GET_INFO_MEMBER(pzletime_state::get_txt_tile_info)
@@ -100,15 +101,15 @@ TILE_GET_INFO_MEMBER(pzletime_state::get_txt_tile_info)
 	int colour = m_txt_videoram[tile_index] & 0xf000;
 	colour = colour >> 12;
 
-	SET_TILE_INFO_MEMBER(0, tileno, colour, 0);
+	tileinfo.set(0, tileno, colour, 0);
 
 	tileinfo.category = BIT(colour, 3);
 }
 
 void pzletime_state::video_start()
 {
-	m_mid_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(pzletime_state::get_mid_tile_info),this), TILEMAP_SCAN_COLS, 16, 16, 64, 16);
-	m_txt_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(pzletime_state::get_txt_tile_info),this), TILEMAP_SCAN_ROWS,  8, 8, 64, 32);
+	m_mid_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(pzletime_state::get_mid_tile_info)), TILEMAP_SCAN_COLS, 16, 16, 64, 16);
+	m_txt_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(pzletime_state::get_txt_tile_info)), TILEMAP_SCAN_ROWS,  8, 8, 64, 32);
 
 	m_mid_tilemap->set_transparent_pen(0);
 	m_txt_tilemap->set_transparent_pen(0);
@@ -172,19 +173,19 @@ uint32_t pzletime_state::screen_update_pzletime(screen_device &screen, bitmap_rg
 	return 0;
 }
 
-WRITE16_MEMBER(pzletime_state::mid_videoram_w)
+void pzletime_state::mid_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_mid_videoram[offset]);
 	m_mid_tilemap->mark_tile_dirty(offset);
 }
 
-WRITE16_MEMBER(pzletime_state::txt_videoram_w)
+void pzletime_state::txt_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_txt_videoram[offset]);
 	m_txt_tilemap->mark_tile_dirty(offset);
 }
 
-WRITE16_MEMBER(pzletime_state::eeprom_w)
+void pzletime_state::eeprom_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (ACCESSING_BITS_0_7)
 	{
@@ -194,13 +195,13 @@ WRITE16_MEMBER(pzletime_state::eeprom_w)
 	}
 }
 
-WRITE16_MEMBER(pzletime_state::ticket_w)
+void pzletime_state::ticket_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (ACCESSING_BITS_0_7)
 		m_ticket = data & 1;
 }
 
-WRITE16_MEMBER(pzletime_state::video_regs_w)
+void pzletime_state::video_regs_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_video_regs[offset]);
 
@@ -213,12 +214,12 @@ WRITE16_MEMBER(pzletime_state::video_regs_w)
 	}
 }
 
-WRITE16_MEMBER(pzletime_state::oki_bank_w)
+void pzletime_state::oki_bank_w(uint16_t data)
 {
 	m_oki->set_rom_bank(data & 0x3);
 }
 
-CUSTOM_INPUT_MEMBER(pzletime_state::ticket_status_r)
+READ_LINE_MEMBER(pzletime_state::ticket_status_r)
 {
 	return (m_ticket && !(m_screen->frame_number() % 128));
 }
@@ -250,7 +251,7 @@ static INPUT_PORTS_START( pzletime )
 	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x0040, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("eeprom", eeprom_serial_93cxx_device, do_read) /* eeprom */
-	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, pzletime_state,ticket_status_r, nullptr) /* ticket dispenser */
+	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(pzletime_state, ticket_status_r) /* ticket dispenser */
 	PORT_BIT( 0xff00, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START("INPUT")

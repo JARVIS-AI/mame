@@ -40,9 +40,9 @@ DEFINE_DEVICE_TYPE(M37450, m37450_device, "m37450", "Mitsubishi M37450")
 m3745x_device::m3745x_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, uint32_t clock, address_map_constructor internal_map) :
 	m740_device(mconfig, type, tag, owner, clock),
 	m_program_config("program", ENDIANNESS_LITTLE, 8, 16, 0, internal_map),
-	m_read_p{{*this}, {*this}, {*this}, {*this}},
-	m_write_p{{*this}, {*this}, {*this}, {*this}},
-	m_read_ad{{*this}, {*this}, {*this}, {*this}, {*this}, {*this}, {*this}, {*this}},
+	m_read_p(*this),
+	m_write_p(*this),
+	m_read_ad(*this),
 	m_intreq1(0),
 	m_intreq2(0),
 	m_intctrl1(0),
@@ -58,15 +58,9 @@ m3745x_device::m3745x_device(const machine_config &mconfig, device_type type, co
 
 void m3745x_device::device_start()
 {
-	for (int i = 0; i < 4; i++)
-	{
-		m_read_p[i].resolve_safe(0);
-		m_write_p[i].resolve_safe();
-	}
-	for (int i = 0; i < 8; i++)
-	{
-		m_read_ad[i].resolve_safe(0);
-	}
+	m_read_p.resolve_all_safe(0);
+	m_write_p.resolve_all_safe();
+	m_read_ad.resolve_all_safe(0);
 
 	for (int i = 0; i < NUM_TIMERS; i++)
 	{
@@ -249,7 +243,7 @@ uint8_t m3745x_device::read_port(uint8_t offset)
 	return incoming;
 }
 
-READ8_MEMBER(m3745x_device::ports_r)
+uint8_t m3745x_device::ports_r(offs_t offset)
 {
 	switch (offset)
 	{
@@ -278,7 +272,7 @@ READ8_MEMBER(m3745x_device::ports_r)
 	return 0xff;
 }
 
-WRITE8_MEMBER(m3745x_device::ports_w)
+void m3745x_device::ports_w(offs_t offset, uint8_t data)
 {
 	switch (offset)
 	{
@@ -319,7 +313,7 @@ WRITE8_MEMBER(m3745x_device::ports_w)
 	}
 }
 
-READ8_MEMBER(m3745x_device::intregs_r)
+uint8_t m3745x_device::intregs_r(offs_t offset)
 {
 	switch (offset)
 	{
@@ -341,7 +335,7 @@ READ8_MEMBER(m3745x_device::intregs_r)
 	return 0;
 }
 
-WRITE8_MEMBER(m3745x_device::intregs_w)
+void m3745x_device::intregs_w(offs_t offset, uint8_t data)
 {
 	switch (offset)
 	{
@@ -365,7 +359,7 @@ WRITE8_MEMBER(m3745x_device::intregs_w)
 	recalc_irqs();
 }
 
-READ8_MEMBER(m3745x_device::adc_r)
+uint8_t m3745x_device::adc_r(offs_t offset)
 {
 	switch (offset)
 	{
@@ -381,7 +375,7 @@ READ8_MEMBER(m3745x_device::adc_r)
 	return 0;
 }
 
-WRITE8_MEMBER(m3745x_device::adc_w)
+void m3745x_device::adc_w(offs_t offset, uint8_t data)
 {
 	switch (offset)
 	{

@@ -149,7 +149,7 @@ public:
 		return 0;
 	}
 
-	READ8_MEMBER(ram_r)
+	uint8_t ram_r(offs_t offset)
 	{
 		if (offset < m_ram->size())
 		{
@@ -159,7 +159,7 @@ public:
 		return 0xff;
 	}
 
-	WRITE8_MEMBER(ram_w)
+	void ram_w(offs_t offset, uint8_t data)
 	{
 		if (offset < m_ram->size())
 		{
@@ -265,37 +265,37 @@ public:
 		}
 	}
 
-	WRITE8_MEMBER(mmu_mode_kern_w)
+	void mmu_mode_kern_w(uint8_t data)
 	{
 		update_mmu_mode(MMU_MODE_KERN);
 	}
 
-	WRITE8_MEMBER(mmu_mode_appl_w)
+	void mmu_mode_appl_w(uint8_t data)
 	{
 		update_mmu_mode(MMU_MODE_APPL);
 	}
 
-	WRITE8_MEMBER(mmu_mode_ram_w)
+	void mmu_mode_ram_w(uint8_t data)
 	{
 		update_mmu_mode(MMU_MODE_RAM);
 	}
 
-	WRITE8_MEMBER(mmu_mode_recall_w)
+	void mmu_mode_recall_w(uint8_t data)
 	{
 		update_mmu_mode(m_mmu_saved_mode);
 	}
 
-	WRITE8_MEMBER(mmu_mode_save_w)
+	void mmu_mode_save_w(uint8_t data)
 	{
 		m_mmu_saved_mode = m_mmu_mode;
 	}
 
-	WRITE8_MEMBER(mmu_mode_test_w)
+	void mmu_mode_test_w(uint8_t data)
 	{
 		update_mmu_mode(MMU_MODE_TEST);
 	}
 
-	WRITE8_MEMBER(mmu_offset1_w)
+	void mmu_offset1_w(uint8_t data)
 	{
 		if (m_mmu_offset1 != data)
 		{
@@ -304,7 +304,7 @@ public:
 		}
 	}
 
-	WRITE8_MEMBER(mmu_offset2_w)
+	void mmu_offset2_w(uint8_t data)
 	{
 		if (m_mmu_offset2 != data)
 		{
@@ -313,7 +313,7 @@ public:
 		}
 	}
 
-	WRITE8_MEMBER(mmu_offset3_w)
+	void mmu_offset3_w(uint8_t data)
 	{
 		if (m_mmu_offset3 != data)
 		{
@@ -322,7 +322,7 @@ public:
 		}
 	}
 
-	WRITE8_MEMBER(mmu_offset4_w)
+	void mmu_offset4_w(uint8_t data)
 	{
 		if (m_mmu_offset4 != data)
 		{
@@ -331,7 +331,7 @@ public:
 		}
 	}
 
-	WRITE8_MEMBER(mmu_offset5_w)
+	void mmu_offset5_w(uint8_t data)
 	{
 		if (m_mmu_offset5 != data)
 		{
@@ -340,57 +340,57 @@ public:
 		}
 	}
 
-	READ8_MEMBER(mmu_offset1_r)
+	uint8_t mmu_offset1_r()
 	{
 		return m_mmu_offset1;
 	}
 
-	READ8_MEMBER(mmu_offset2_r)
+	uint8_t mmu_offset2_r()
 	{
 		return m_mmu_offset2;
 	}
 
-	READ8_MEMBER(mmu_offset3_r)
+	uint8_t mmu_offset3_r()
 	{
 		return m_mmu_offset3;
 	}
 
-	READ8_MEMBER(mmu_offset4_r)
+	uint8_t mmu_offset4_r()
 	{
 		return m_mmu_offset4;
 	}
 
-	READ8_MEMBER(mmu_offset5_r)
+	uint8_t mmu_offset5_r()
 	{
 		return m_mmu_offset5;
 	}
 
-	WRITE8_MEMBER(lcd_scrollx_w)
+	void lcd_scrollx_w(uint8_t data)
 	{
 		m_lcd_scrollx = data;
 	}
 
-	WRITE8_MEMBER(lcd_scrolly_w)
+	void lcd_scrolly_w(uint8_t data)
 	{
 		m_lcd_scrolly = data;
 	}
 
-	WRITE8_MEMBER(lcd_mode_w)
+	void lcd_mode_w(uint8_t data)
 	{
 		m_lcd_mode = data;
 	}
 
-	WRITE8_MEMBER(lcd_size_w)
+	void lcd_size_w(uint8_t data)
 	{
 		m_lcd_size = data;
 	}
 
-	WRITE8_MEMBER(via0_pa_w)
+	void via0_pa_w(uint8_t data)
 	{
 		m_key_column = data;
 	}
 
-	WRITE8_MEMBER(via0_pb_w)
+	void via0_pb_w(uint8_t data)
 	{
 		write_key_poll((data >> 0) & 1);
 		m_rtc->cs2_w((data >> 1) & 1);
@@ -439,7 +439,7 @@ public:
 		}
 	}
 
-	WRITE8_MEMBER(via1_pa_w)
+	void via1_pa_w(uint8_t data)
 	{
 		m_rtc->d0_w(BIT(data, 0));
 		m_centronics->write_data0(BIT(data, 0));
@@ -465,7 +465,7 @@ public:
 		m_centronics->write_data7(BIT(data, 7));
 	}
 
-	WRITE8_MEMBER(via1_pb_w)
+	void via1_pb_w(uint8_t data)
 	{
 		//int centronics_unknown = !BIT(data,5);
 	}
@@ -543,8 +543,8 @@ void clcd_state::clcd_mem(address_map &map)
 	map(0x4000, 0x7fff).rw(m_bankdev[1], FUNC(address_map_bank_device::read8), FUNC(address_map_bank_device::write8));
 	map(0x8000, 0xbfff).rw(m_bankdev[2], FUNC(address_map_bank_device::read8), FUNC(address_map_bank_device::write8));
 	map(0xc000, 0xf7ff).rw(m_bankdev[3], FUNC(address_map_bank_device::read8), FUNC(address_map_bank_device::write8));
-	map(0xf800, 0xf80f).mirror(0x70).rw(m_via0, FUNC(via6522_device::read), FUNC(via6522_device::write));
-	map(0xf880, 0xf88f).mirror(0x70).rw("via1", FUNC(via6522_device::read), FUNC(via6522_device::write));
+	map(0xf800, 0xf80f).mirror(0x70).m(m_via0, FUNC(via6522_device::map));
+	map(0xf880, 0xf88f).mirror(0x70).m("via1", FUNC(via6522_device::map));
 	map(0xf980, 0xf983).mirror(0x7c).rw(m_acia, FUNC(mos6551_device::read), FUNC(mos6551_device::write));
 	map(0xfa00, 0xffff).rom().region("maincpu", 0x1fa00);
 	map(0xfa00, 0xfa00).mirror(0x7f).w(FUNC(clcd_state::mmu_mode_kern_w));

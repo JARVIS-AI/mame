@@ -54,10 +54,10 @@ public:
 	void att4425(machine_config &config);
 
 private:
-	DECLARE_WRITE8_MEMBER(port10_w);
-	DECLARE_WRITE8_MEMBER(port14_w);
-	DECLARE_READ8_MEMBER(port14_r);
-	DECLARE_READ8_MEMBER(port15_r);
+	void port10_w(uint8_t data);
+	void port14_w(uint8_t data);
+	uint8_t port14_r();
+	uint8_t port15_r();
 
 	DECLARE_WRITE_LINE_MEMBER(write_line_clock);
 	DECLARE_WRITE_LINE_MEMBER(write_keyboard_clock);
@@ -79,23 +79,23 @@ private:
 
 /* Memory Maps */
 
-WRITE8_MEMBER(att4425_state::port10_w)
+void att4425_state::port10_w(uint8_t data)
 {
 	logerror("Writing %02X to port 10\n", data);
 }
 
-WRITE8_MEMBER(att4425_state::port14_w)
+void att4425_state::port14_w(uint8_t data)
 {
 	logerror("Writing %02X to port 14\n", data);
 }
 
-READ8_MEMBER(att4425_state::port14_r)
+uint8_t att4425_state::port14_r()
 {
 	// only complement of bit 0 used?
 	return 0;
 }
 
-READ8_MEMBER(att4425_state::port15_r)
+uint8_t att4425_state::port15_r()
 {
 	// status of something (at least bits 2 and 3 used)
 	return 0;
@@ -177,14 +177,10 @@ uint32_t att4425_state::screen_update(screen_device &screen, bitmap_ind16 &bitma
 					gfx ^= 255;
 
 				/* Display a scanline of a character */
-				*p++ = BIT(gfx, 7) ? fg : bg;
-				*p++ = BIT(gfx, 6) ? fg : bg;
-				*p++ = BIT(gfx, 5) ? fg : bg;
-				*p++ = BIT(gfx, 4) ? fg : bg;
-				*p++ = BIT(gfx, 3) ? fg : bg;
-				*p++ = BIT(gfx, 2) ? fg : bg;
-				*p++ = BIT(gfx, 1) ? fg : bg;
-				*p++ = BIT(gfx, 0) ? fg : bg;
+				for (int i = 7; i >= 0; i--)
+				{
+					*p++ = BIT(gfx, i) ? fg : bg;
+				}
 				*p++ = bg;
 			}
 		}

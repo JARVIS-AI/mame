@@ -40,7 +40,7 @@ void vigilant_state::machine_start()
 	membank("bank1")->configure_entries(0, 8, memregion("maincpu")->base() + 0x10000, 0x4000);
 }
 
-WRITE8_MEMBER(vigilant_state::bank_select_w)
+void vigilant_state::bank_select_w(uint8_t data)
 {
 	membank("bank1")->set_entry(data & 0x07);
 }
@@ -48,7 +48,7 @@ WRITE8_MEMBER(vigilant_state::bank_select_w)
 /***************************************************************************
  vigilant_out2_w
  **************************************************************************/
-WRITE8_MEMBER(vigilant_state::vigilant_out2_w)
+void vigilant_state::vigilant_out2_w(uint8_t data)
 {
 	/* D0 = FILP = Flip screen? */
 	/* D1 = COA1 = Coin Counter A? */
@@ -61,7 +61,7 @@ WRITE8_MEMBER(vigilant_state::vigilant_out2_w)
 //  data & 0x01 cocktail mode
 }
 
-WRITE8_MEMBER(vigilant_state::kikcubic_coin_w)
+void vigilant_state::kikcubic_coin_w(uint8_t data)
 {
 	/* bits 0 is flip screen */
 
@@ -116,7 +116,7 @@ void vigilant_state::kikcubic_io_map(address_map &map)
 	map(0x03, 0x03).portr("IN1");
 	map(0x04, 0x04).portr("IN2").w(FUNC(vigilant_state::bank_select_w));
 	map(0x06, 0x06).w("soundlatch", FUNC(generic_latch_8_device::write));
-//  AM_RANGE(0x07, 0x07) AM_WRITENOP /* ?? */
+//  map(0x07, 0x07).nopw(); /* ?? */
 }
 
 void vigilant_state::sound_map(address_map &map)
@@ -584,7 +584,7 @@ void vigilant_state::buccanrs(machine_config &config)
 	ym1.add_route(3, "lspeaker",  0.50);
 	ym1.add_route(3, "rspeaker", 0.50);
 
-	ym2203_device &ym2(YM2203(config, "ym2", 18432000/6));;
+	ym2203_device &ym2(YM2203(config, "ym2", 18432000/6));
 	ym2.add_route(0, "lspeaker",  0.35);
 	ym2.add_route(0, "rspeaker", 0.35);
 	ym2.add_route(1, "lspeaker",  0.35);

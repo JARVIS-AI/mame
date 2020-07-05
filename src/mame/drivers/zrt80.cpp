@@ -49,9 +49,9 @@ private:
 		TIMER_BEEP_OFF
 	};
 
-	DECLARE_READ8_MEMBER(zrt80_10_r);
-	DECLARE_WRITE8_MEMBER(zrt80_30_w);
-	DECLARE_WRITE8_MEMBER(zrt80_38_w);
+	uint8_t zrt80_10_r();
+	void zrt80_30_w(uint8_t data);
+	void zrt80_38_w(uint8_t data);
 	void kbd_put(u8 data);
 	MC6845_UPDATE_ROW(crtc_update_row);
 
@@ -60,7 +60,8 @@ private:
 
 	virtual void device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr) override;
 	uint8_t m_term_data;
-	virtual void machine_reset() override;
+	void machine_reset() override;
+	void machine_start() override;
 	required_shared_ptr<uint8_t> m_p_videoram;
 	required_device<cpu_device> m_maincpu;
 	required_device<mc6845_device> m_crtc;
@@ -71,7 +72,7 @@ private:
 };
 
 
-READ8_MEMBER( zrt80_state::zrt80_10_r )
+uint8_t zrt80_state::zrt80_10_r()
 {
 	uint8_t ret = m_term_data;
 	m_maincpu->set_input_line(INPUT_LINE_NMI, CLEAR_LINE);
@@ -86,18 +87,18 @@ void zrt80_state::device_timer(emu_timer &timer, device_timer_id id, int param, 
 		m_beep->set_state(0);
 		break;
 	default:
-		assert_always(false, "Unknown id in zrt80_state::device_timer");
+		throw emu_fatalerror("Unknown id in zrt80_state::device_timer");
 	}
 }
 
 
-WRITE8_MEMBER(zrt80_state::zrt80_30_w)
+void zrt80_state::zrt80_30_w(uint8_t data)
 {
 	timer_set(attotime::from_msec(100), TIMER_BEEP_OFF);
 	m_beep->set_state(1);
 }
 
-WRITE8_MEMBER(zrt80_state::zrt80_38_w)
+void zrt80_state::zrt80_38_w(uint8_t data)
 {
 	timer_set(attotime::from_msec(400), TIMER_BEEP_OFF);
 	m_beep->set_state(1);
@@ -211,6 +212,11 @@ static INPUT_PORTS_START( zrt80 )
 INPUT_PORTS_END
 
 
+void zrt80_state::machine_start()
+{
+	save_item(NAME(m_term_data));
+}
+
 void zrt80_state::machine_reset()
 {
 	m_term_data = 0;
@@ -304,7 +310,7 @@ void zrt80_state::zrt80(machine_config &config)
 	m_crtc->set_screen("screen");
 	m_crtc->set_show_border_area(false);
 	m_crtc->set_char_width(8); /*?*/
-	m_crtc->set_update_row_callback(FUNC(zrt80_state::crtc_update_row), this);
+	m_crtc->set_update_row_callback(FUNC(zrt80_state::crtc_update_row));
 
 	INS8250(config, m_8250, 2457600);
 	m_8250->out_int_callback().set_inputline("maincpu", INPUT_LINE_IRQ0);
@@ -315,7 +321,7 @@ void zrt80_state::zrt80(machine_config &config)
 
 /* ROM definition */
 ROM_START( zrt80 )
-	ROM_REGION( 0x10000, "maincpu", ROMREGION_ERASEFF )
+	ROM_REGION( 0x2000, "maincpu", ROMREGION_ERASEFF )
 	ROM_LOAD("zrt80mon.z25", 0x0000, 0x1000, CRC(e6ea96dc) SHA1(e3075e30bb2b85f9288d0b8b8cdf1d2b4f7586fd) )
 	//z24 is 2nd chip, used as expansion
 
@@ -326,4 +332,4 @@ ROM_END
 /* Driver */
 
 /*    YEAR  NAME   PARENT  COMPAT  MACHINE  INPUT  CLASS        INIT        COMPANY                       FULLNAME   FLAGS */
-COMP( 1982, zrt80, 0,      0,      zrt80,   zrt80, zrt80_state, empty_init, "Digital Research Computers", "ZRT-80",  0)
+COMP( 1982, zrt80, 0,      0,      zrt80,   zrt80, zrt80_state, empty_init, "Digital Research Computers", "ZRT-80",  MACHINE_SUPPORTS_SAVE )

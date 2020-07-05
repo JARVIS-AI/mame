@@ -39,8 +39,8 @@
 class slotcarn_state : public driver_device
 {
 public:
-	slotcarn_state(const machine_config &mconfig, device_type type, const char *tag)
-		: driver_device(mconfig, type, tag),
+	slotcarn_state(const machine_config &mconfig, device_type type, const char *tag) :
+		driver_device(mconfig, type, tag),
 		m_backup_ram(*this, "backup_ram"),
 		m_ram_attr(*this, "raattr"),
 		m_ram_video(*this, "ravideo"),
@@ -55,8 +55,8 @@ private:
 	required_shared_ptr<uint8_t> m_ram_attr;
 	required_shared_ptr<uint8_t> m_ram_video;
 	std::unique_ptr<uint8_t[]> m_ram_palette;
-	DECLARE_READ8_MEMBER(palette_r);
-	DECLARE_WRITE8_MEMBER(palette_w);
+	uint8_t palette_r(offs_t offset);
+	void palette_w(offs_t offset, uint8_t data);
 	DECLARE_WRITE_LINE_MEMBER(hsync_changed);
 	MC6845_BEGIN_UPDATE(crtc_begin_update);
 	MC6845_UPDATE_ROW(crtc_update_row);
@@ -78,23 +78,19 @@ private:
 
 */
 
-READ8_MEMBER(slotcarn_state::palette_r)
+uint8_t slotcarn_state::palette_r(offs_t offset)
 {
-	int co;
-
-	co = ((m_ram_attr[offset] & 0x7F) << 3) | (offset & 0x07);
+	int co = ((m_ram_attr[offset] & 0x7F) << 3) | (offset & 0x07);
 	return m_ram_palette[co];
 }
 
-WRITE8_MEMBER(slotcarn_state::palette_w)
+void slotcarn_state::palette_w(offs_t offset, uint8_t data)
 {
-	int co;
-
-//  m_screen->update_now();
+	//  m_screen->update_now();
 	m_screen->update_partial(m_screen->vpos());
 	data &= 0x0f;
 
-	co = ((m_ram_attr[offset] & 0x7F) << 3) | (offset & 0x07);
+	int co = ((m_ram_attr[offset] & 0x7F) << 3) | (offset & 0x07);
 	m_ram_palette[co] = data;
 
 }
@@ -571,8 +567,8 @@ void slotcarn_state::slotcarn(machine_config &config)
 	crtc.set_screen(m_screen);
 	crtc.set_show_border_area(false);
 	crtc.set_char_width(8);
-	crtc.set_begin_update_callback(FUNC(slotcarn_state::crtc_begin_update), this);
-	crtc.set_update_row_callback(FUNC(slotcarn_state::crtc_update_row), this);
+	crtc.set_begin_update_callback(FUNC(slotcarn_state::crtc_begin_update));
+	crtc.set_update_row_callback(FUNC(slotcarn_state::crtc_update_row));
 	crtc.out_hsync_callback().set(FUNC(slotcarn_state::hsync_changed));
 	crtc.out_vsync_callback().set_inputline(m_maincpu, 0);
 

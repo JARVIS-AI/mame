@@ -57,7 +57,7 @@ void pc8401a_state::scan_keyboard()
 	if (!m_key_strobe && strobe)
 	{
 		/* trigger interrupt */
-		m_maincpu->set_input_line_and_vector(INPUT_LINE_IRQ0, ASSERT_LINE, 0x28); // Z80
+		m_maincpu->set_input_line_and_vector(INPUT_LINE_IRQ0, ASSERT_LINE, 0xef); // Z80 - RST 28h
 		logerror("INTERRUPT\n");
 	}
 
@@ -169,7 +169,7 @@ void pc8401a_state::bankswitch(uint8_t data)
 	}
 }
 
-WRITE8_MEMBER( pc8401a_state::mmr_w )
+void pc8401a_state::mmr_w(uint8_t data)
 {
 	/*
 
@@ -194,12 +194,12 @@ WRITE8_MEMBER( pc8401a_state::mmr_w )
 	m_mmr = data;
 }
 
-READ8_MEMBER( pc8401a_state::mmr_r )
+uint8_t pc8401a_state::mmr_r()
 {
 	return m_mmr;
 }
 
-READ8_MEMBER( pc8401a_state::rtc_r )
+uint8_t pc8401a_state::rtc_r()
 {
 	/*
 
@@ -219,7 +219,7 @@ READ8_MEMBER( pc8401a_state::rtc_r )
 	return (m_rtc->data_out_r() << 1) | (m_rtc->tp_r() << 2);
 }
 
-WRITE8_MEMBER( pc8401a_state::rtc_cmd_w )
+void pc8401a_state::rtc_cmd_w(uint8_t data)
 {
 	/*
 
@@ -242,7 +242,7 @@ WRITE8_MEMBER( pc8401a_state::rtc_cmd_w )
 	m_rtc->data_in_w(BIT(data, 3));
 }
 
-WRITE8_MEMBER( pc8401a_state::rtc_ctrl_w )
+void pc8401a_state::rtc_ctrl_w(uint8_t data)
 {
 	/*
 
@@ -264,13 +264,13 @@ WRITE8_MEMBER( pc8401a_state::rtc_ctrl_w )
 	m_rtc->clk_w(BIT(data, 2));
 }
 
-READ8_MEMBER( pc8401a_state::io_rom_data_r )
+uint8_t pc8401a_state::io_rom_data_r()
 {
 	//logerror("I/O ROM read from %05x\n", m_io_addr);
 	return m_io_cart->read_rom(m_io_addr);
 }
 
-WRITE8_MEMBER( pc8401a_state::io_rom_addr_w )
+void pc8401a_state::io_rom_addr_w(offs_t offset, uint8_t data)
 {
 	switch (offset)
 	{
@@ -292,7 +292,7 @@ WRITE8_MEMBER( pc8401a_state::io_rom_addr_w )
 	}
 }
 
-READ8_MEMBER( pc8401a_state::port70_r )
+uint8_t pc8401a_state::port70_r()
 {
 	/*
 
@@ -312,17 +312,17 @@ READ8_MEMBER( pc8401a_state::port70_r )
 	return 0x10 | m_key_strobe;
 }
 
-READ8_MEMBER( pc8401a_state::port71_r )
+uint8_t pc8401a_state::port71_r()
 {
 	return m_key_latch;
 }
 
-WRITE8_MEMBER( pc8401a_state::port70_w )
+void pc8401a_state::port70_w(uint8_t data)
 {
 	m_key_strobe = 0;
 }
 
-WRITE8_MEMBER( pc8401a_state::port71_w )
+void pc8401a_state::port71_w(uint8_t data)
 {
 	m_maincpu->set_input_line(INPUT_LINE_IRQ0, CLEAR_LINE);
 
@@ -363,23 +363,23 @@ void pc8401a_state::pc8500_io(address_map &map)
 	map(0x10, 0x10).w(FUNC(pc8401a_state::rtc_cmd_w));
 	map(0x20, 0x21).rw(I8251_TAG, FUNC(i8251_device::read), FUNC(i8251_device::write));
 	map(0x30, 0x30).rw(FUNC(pc8401a_state::mmr_r), FUNC(pc8401a_state::mmr_w));
-//  AM_RANGE(0x31, 0x31)
+//  map(0x31, 0x31)
 	map(0x40, 0x40).rw(FUNC(pc8401a_state::rtc_r), FUNC(pc8401a_state::rtc_ctrl_w));
-//  AM_RANGE(0x41, 0x41)
-//  AM_RANGE(0x50, 0x51)
+//  map(0x41, 0x41)
+//  map(0x50, 0x51)
 	map(0x60, 0x60).rw(m_lcdc, FUNC(sed1330_device::status_r), FUNC(sed1330_device::data_w));
 	map(0x61, 0x61).rw(m_lcdc, FUNC(sed1330_device::data_r), FUNC(sed1330_device::command_w));
 	map(0x70, 0x70).rw(FUNC(pc8401a_state::port70_r), FUNC(pc8401a_state::port70_w));
 	map(0x71, 0x71).rw(FUNC(pc8401a_state::port71_r), FUNC(pc8401a_state::port71_w));
-//  AM_RANGE(0x80, 0x80) modem status, set to 0xff to boot
-//  AM_RANGE(0x8b, 0x8b)
-//  AM_RANGE(0x90, 0x93)
-//  AM_RANGE(0xa0, 0xa1)
+//  map(0x80, 0x80) modem status, set to 0xff to boot
+//  map(0x8b, 0x8b)
+//  map(0x90, 0x93)
+//  map(0xa0, 0xa1)
 	map(0x98, 0x98).w(m_crtc, FUNC(mc6845_device::address_w));
 	map(0x99, 0x99).rw(m_crtc, FUNC(mc6845_device::register_r), FUNC(mc6845_device::register_w));
 	map(0xb0, 0xb3).w(FUNC(pc8401a_state::io_rom_addr_w));
 	map(0xb3, 0xb3).r(FUNC(pc8401a_state::io_rom_data_r));
-//  AM_RANGE(0xc8, 0xc8)
+//  map(0xc8, 0xc8)
 	map(0xfc, 0xff).rw(I8255A_TAG, FUNC(i8255_device::read), FUNC(i8255_device::write));
 }
 
@@ -530,7 +530,7 @@ void pc8401a_state::machine_start()
 	save_item(NAME(m_io_addr));
 }
 
-READ8_MEMBER( pc8401a_state::ppi_pc_r )
+uint8_t pc8401a_state::ppi_pc_r()
 {
 	/*
 
@@ -550,7 +550,7 @@ READ8_MEMBER( pc8401a_state::ppi_pc_r )
 	return 0;
 }
 
-WRITE8_MEMBER( pc8401a_state::ppi_pc_w )
+void pc8401a_state::ppi_pc_w(uint8_t data)
 {
 	/*
 
@@ -573,7 +573,7 @@ WRITE8_MEMBER( pc8401a_state::ppi_pc_w )
 void pc8401a_state::pc8401a(machine_config &config)
 {
 	/* basic machine hardware */
-	Z80(config, m_maincpu, 4000000); // NEC uPD70008C
+	Z80(config, m_maincpu, 7.987_MHz_XTAL / 2); // NEC uPD70008C
 	m_maincpu->set_addrmap(AS_PROGRAM, &pc8401a_state::pc8401a_mem);
 	m_maincpu->set_addrmap(AS_IO, &pc8401a_state::pc8401a_io);
 

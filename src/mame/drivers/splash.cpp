@@ -81,7 +81,7 @@ void splash_state::splash_map(address_map &map)
 	map(0x840002, 0x840003).portr("DSW2");
 	map(0x840004, 0x840005).portr("P1");
 	map(0x840006, 0x840007).portr("P2");
-	map(0x84000a, 0x84000a).select(0x000070).lw8("outlatch_w", [this](offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 3, data); });
+	map(0x84000a, 0x84000a).select(0x000070).lw8(NAME([this] (offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 4, data); }));
 	map(0x84000f, 0x84000f).w(m_soundlatch, FUNC(generic_latch_8_device::write));
 	map(0x880000, 0x8817ff).ram().w(FUNC(splash_state::vram_w)).share("videoram");   /* Video RAM */
 	map(0x881800, 0x881803).ram().share("vregs");                           /* Scroll registers */
@@ -91,19 +91,19 @@ void splash_state::splash_map(address_map &map)
 	map(0xffc000, 0xffffff).ram();                                                 /* Work RAM */
 }
 
-WRITE8_MEMBER(splash_state::splash_adpcm_data_w)
+void splash_state::splash_adpcm_data_w(uint8_t data)
 {
 	m_adpcm_data = data;
 }
 
-WRITE8_MEMBER(splash_state::splash_adpcm_control_w)
+void splash_state::splash_adpcm_control_w(uint8_t data)
 {
 	m_msm->reset_w(!BIT(data, 0));
 }
 
 WRITE_LINE_MEMBER(splash_state::splash_msm5205_int)
 {
-	m_msm->write_data(m_adpcm_data >> 4);
+	m_msm->data_w(m_adpcm_data >> 4);
 	m_adpcm_data = (m_adpcm_data << 4) & 0xf0;
 }
 
@@ -120,13 +120,13 @@ void splash_state::splash_sound_map(address_map &map)
 /* Return of Lady Frog Maps */
 /* note, sprite ram has moved, extra protection ram, and extra write for the pixel layer */
 
-READ16_MEMBER(splash_state::roldfrog_bombs_r)
+uint16_t splash_state::roldfrog_bombs_r()
 {
 	m_ret ^= 0x100;
 	return m_ret;
 }
 
-WRITE8_MEMBER(splash_state::sound_bank_w)
+void splash_state::sound_bank_w(uint8_t data)
 {
 	membank("sound_bank")->set_entry(data & 0xf);
 }
@@ -138,7 +138,7 @@ void splash_state::roldfrog_update_irq(  )
 	m_audiocpu->set_input_line_and_vector(0, irq ? ASSERT_LINE : CLEAR_LINE, 0xc7 | irq); // Z80
 }
 
-WRITE8_MEMBER(splash_state::roldfrog_vblank_ack_w)
+void splash_state::roldfrog_vblank_ack_w(uint8_t data)
 {
 	m_vblank_irq = 0;
 	roldfrog_update_irq();
@@ -161,7 +161,7 @@ void splash_state::roldfrog_map(address_map &map)
 	map(0x840002, 0x840003).portr("DSW2");
 	map(0x840004, 0x840005).portr("P1");
 	map(0x840006, 0x840007).portr("P2");
-	map(0x84000a, 0x84000a).select(0x000070).lw8("outlatch_w", [this](offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 3, data); });
+	map(0x84000a, 0x84000a).select(0x000070).lw8(NAME([this] (offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 4, data); }));
 	map(0x84000f, 0x84000f).w(m_soundlatch, FUNC(generic_latch_8_device::write));
 	map(0x880000, 0x8817ff).ram().w(FUNC(splash_state::vram_w)).share("videoram");   /* Video RAM */
 	map(0x881800, 0x881803).ram().share("vregs");                           /* Scroll registers */
@@ -180,7 +180,7 @@ void splash_state::roldfrog_sound_map(address_map &map)
 	map(0x8000, 0xffff).rom().bankr("sound_bank");
 }
 
-READ8_MEMBER(splash_state::roldfrog_unk_r)
+uint8_t splash_state::roldfrog_unk_r()
 {
 	// dragon punch leftovers
 	return 0xff;
@@ -198,18 +198,18 @@ void splash_state::roldfrog_sound_io_map(address_map &map)
 	map(0x20, 0x23).r(FUNC(splash_state::roldfrog_unk_r));
 }
 
-READ16_MEMBER(funystrp_state::spr_read)
+uint16_t funystrp_state::spr_read(offs_t offset)
 {
 	return m_spriteram[offset]|0xff00;
 }
 
-WRITE16_MEMBER(funystrp_state::spr_write)
+void funystrp_state::spr_write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_spriteram[offset]);
 	m_spriteram[offset]|=0xff00; /* 8 bit, expected 0xffnn when read as 16 bit */
 }
 
-WRITE8_MEMBER(funystrp_state::eeprom_w)
+void funystrp_state::eeprom_w(uint8_t data)
 {
 	m_eeprom->cs_write(BIT(data, 4));
 	m_eeprom->di_write(BIT(data, 6));
@@ -244,29 +244,29 @@ void splash_state::funystrp_sound_map(address_map &map)
 	map(0x8000, 0xffff).rom().bankr("sound_bank");
 }
 
-READ8_MEMBER(funystrp_state::int_source_r)
+uint8_t funystrp_state::int_source_r()
 {
 	return ~m_msm_source;
 }
 
-WRITE8_MEMBER(funystrp_state::msm1_data_w)
+void funystrp_state::msm1_data_w(uint8_t data)
 {
 	m_msm_data1=data;
 	m_msm_source&=~1;
 	m_msm_toggle1=0;
 }
 
-WRITE8_MEMBER(funystrp_state::msm1_interrupt_w)
+void funystrp_state::msm1_interrupt_w(uint8_t data)
 {
 	m_snd_interrupt_enable1=~data;
 }
 
-WRITE8_MEMBER(funystrp_state::msm2_interrupt_w)
+void funystrp_state::msm2_interrupt_w(uint8_t data)
 {
 	m_snd_interrupt_enable2=~data;
 }
 
-WRITE8_MEMBER(funystrp_state::msm2_data_w)
+void funystrp_state::msm2_data_w(uint8_t data)
 {
 	m_msm_data2=data;
 	m_msm_source&=~2;
@@ -360,7 +360,7 @@ INPUT_PORTS_END
 
 static INPUT_PORTS_START( funystrp )
 	PORT_START("DSW1")
-	PORT_DIPNAME( 0x0f, 0x0f, DEF_STR( Coin_A ) )
+	PORT_DIPNAME( 0x0f, 0x0f, DEF_STR( Coin_A ) )       PORT_DIPLOCATION("SW1:1,2,3,4")
 	PORT_DIPSETTING(    0x06, DEF_STR( 5C_1C ) )
 	PORT_DIPSETTING(    0x07, DEF_STR( 4C_1C ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( 3C_1C ) )
@@ -373,7 +373,7 @@ static INPUT_PORTS_START( funystrp )
 	PORT_DIPSETTING(    0x0b, DEF_STR( 1C_5C ) )
 	PORT_DIPSETTING(    0x0a, DEF_STR( 1C_6C ) )
 	PORT_DIPSETTING(    0x00, "1C/1C or Free Play (if Coin B too)" )
-	PORT_DIPNAME( 0xf0, 0xf0, DEF_STR( Coin_B ) )
+	PORT_DIPNAME( 0xf0, 0xf0, DEF_STR( Coin_B ) )       PORT_DIPLOCATION("SW1:5,6,7,8")
 	PORT_DIPSETTING(    0x60, DEF_STR( 5C_1C ) )
 	PORT_DIPSETTING(    0x70, DEF_STR( 4C_1C ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( 3C_1C ) )
@@ -388,26 +388,26 @@ static INPUT_PORTS_START( funystrp )
 	PORT_DIPSETTING(    0x00, "1C/1C or Free Play (if Coin A too)" )
 
 	PORT_START("DSW2")
-	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) )
+	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) )       PORT_DIPLOCATION("SW2:1,2")
 	PORT_DIPSETTING(    0x03, DEF_STR( Easy ) )
 	PORT_DIPSETTING(    0x02, DEF_STR( Normal ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( Hard ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Hardest ) )
-	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Lives ) )
+	PORT_DIPNAME( 0x0c, 0x0c, DEF_STR( Lives ) )      PORT_DIPLOCATION("SW2:3,4")
 	PORT_DIPSETTING(    0x04, "1" )
 	PORT_DIPSETTING(    0x08, "2" )
 	PORT_DIPSETTING(    0x0c, "3" )
 	PORT_DIPSETTING(    0x00, "5" )
-	PORT_DIPNAME( 0x30, 0x30, "Bonus" )
+	PORT_DIPNAME( 0x30, 0x30, "Bonus" )      PORT_DIPLOCATION("SW2:5,6")
 	PORT_DIPSETTING(    0x30, "Bonus Chance HI/LO Cards" )
 	PORT_DIPSETTING(    0x10, "Life at Stage 10" )
 	PORT_DIPSETTING(    0x00, "Life at Stage 20" )
 	PORT_DIPSETTING(    0x20, DEF_STR( None ) )
-	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Demo_Sounds ) )      PORT_DIPLOCATION("SW2:7")
 	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Normal ) )
-	PORT_DIPNAME( 0x80, 0x80, "Strip Mode" )
+	PORT_DIPNAME( 0x80, 0x80, "Strip Mode" )      PORT_DIPLOCATION("SW2:8")
 	PORT_DIPSETTING(    0x80, "Soft" )
 	PORT_DIPSETTING(    0x00, DEF_STR( Hard ) )
 
@@ -591,7 +591,7 @@ WRITE_LINE_MEMBER(funystrp_state::adpcm_int1)
 {
 	if (m_snd_interrupt_enable1  || m_msm_toggle1 == 1)
 	{
-		m_msm1->write_data(m_msm_data1 >> 4);
+		m_msm1->data_w(m_msm_data1 >> 4);
 		m_msm_data1 <<= 4;
 		m_msm_toggle1 ^= 1;
 		if (m_msm_toggle1 == 0)
@@ -606,7 +606,7 @@ WRITE_LINE_MEMBER(funystrp_state::adpcm_int2)
 {
 	if (m_snd_interrupt_enable2 || m_msm_toggle2 == 1)
 	{
-		m_msm2->write_data(m_msm_data2 >> 4);
+		m_msm2->data_w(m_msm_data2 >> 4);
 		m_msm_data2 <<= 4;
 		m_msm_toggle2 ^= 1;
 		if (m_msm_toggle2 == 0)
@@ -807,7 +807,7 @@ Note
 001-937
 */
 
-ROM_START( rebus )
+ROM_START( rebus ) // there's also a year hack dumped: it has 4 different bytes total, 2 to change 1995 to 1997 in two places and 2 corresponding changes to fix the checksum
 	ROM_REGION( 0x408000, "maincpu", 0 )    /* 68000 code */
 	ROM_LOAD16_BYTE( "2.u16", 0x000000, 0x080000, CRC(7c8a717f) SHA1(00b1e7986046a7705fc65a5c7d4701a002b2ea6f) )
 	ROM_LOAD16_BYTE( "6.u12", 0x000001, 0x080000, CRC(8f73d548) SHA1(210d95dc0db41da3252a09e598719d98bca41983) )
@@ -1116,7 +1116,7 @@ void splash_state::init_rebus()
 
 
 
-READ16_MEMBER(funystrp_state::protection_r)
+uint16_t funystrp_state::protection_r(offs_t offset)
 {
 	int pc = m_maincpu->pc();
 
@@ -1397,7 +1397,7 @@ READ16_MEMBER(funystrp_state::protection_r)
 	return 0;
 }
 
-WRITE16_MEMBER(funystrp_state::protection_w)
+void funystrp_state::protection_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	int ofst = (0x100000/2)+offset;
 
@@ -1436,8 +1436,8 @@ void funystrp_state::init_funystrp()
 
 	membank("sound_bank")->configure_entries(0, 16, &ROM[0x00000], 0x8000);
 
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x100000, 0x1fffff, write16_delegate(FUNC(funystrp_state::protection_w), this));
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x100000, 0x1fffff, read16_delegate(FUNC(funystrp_state::protection_r),this));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x100000, 0x1fffff, write16s_delegate(*this, FUNC(funystrp_state::protection_w)));
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x100000, 0x1fffff, read16sm_delegate(*this, FUNC(funystrp_state::protection_r)));
 }
 
 GAME( 1992, splash,   0,        splash,   splash,   splash_state,   init_splash,   ROT0, "Gaelco / OMK Software",  "Splash! (Ver. 1.2 World)", MACHINE_SUPPORTS_SAVE )

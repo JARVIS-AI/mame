@@ -104,32 +104,32 @@ private:
 
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
-	DECLARE_READ8_MEMBER( io_r );
-	DECLARE_WRITE8_MEMBER( io_w );
-	DECLARE_READ8_MEMBER( ppi_pa_r );
-	DECLARE_WRITE8_MEMBER( ppi_pa_w );
-	DECLARE_READ8_MEMBER( ppi_pb_r );
-	DECLARE_WRITE8_MEMBER( ppi_pb_w );
-	DECLARE_READ8_MEMBER( ppi_pc_r );
-	DECLARE_WRITE8_MEMBER( ppi_pc_w );
-	DECLARE_READ8_MEMBER( ppi_control_r );
-	DECLARE_WRITE8_MEMBER( ppi_control_w );
-	DECLARE_READ8_MEMBER( pio_pa_r );
-	DECLARE_WRITE8_MEMBER( pio_pa_w );
+	uint8_t io_r(offs_t offset);
+	void io_w(uint8_t data);
+	uint8_t ppi_pa_r();
+	void ppi_pa_w(uint8_t data);
+	uint8_t ppi_pb_r();
+	void ppi_pb_w(uint8_t data);
+	uint8_t ppi_pc_r();
+	void ppi_pc_w(uint8_t data);
+	uint8_t ppi_control_r();
+	void ppi_control_w(uint8_t data);
+	uint8_t pio_pa_r();
+	void pio_pa_w(uint8_t data);
 
 	TIMER_DEVICE_CALLBACK_MEMBER(set_irq);
 	TIMER_DEVICE_CALLBACK_MEMBER(clear_irq);
-	DECLARE_READ8_MEMBER(pio_ad_r);
-	DECLARE_READ8_MEMBER(pio_bd_r);
-	DECLARE_READ8_MEMBER(pio_ac_r);
-	DECLARE_READ8_MEMBER(pio_bc_r);
-	DECLARE_WRITE8_MEMBER(pio_ad_w);
-	DECLARE_WRITE8_MEMBER(pio_bd_w);
-	DECLARE_WRITE8_MEMBER(pio_ac_w);
-	DECLARE_WRITE8_MEMBER(pio_bc_w);
-	DECLARE_READ8_MEMBER(sby_r);
-	DECLARE_WRITE8_MEMBER(ald_w);
-	DECLARE_SNAPSHOT_LOAD_MEMBER(snapshot_cb);
+	uint8_t pio_ad_r();
+	uint8_t pio_bd_r();
+	uint8_t pio_ac_r();
+	uint8_t pio_bc_r();
+	void pio_ad_w(uint8_t data);
+	void pio_bd_w(uint8_t data);
+	void pio_ac_w(uint8_t data);
+	void pio_bc_w(uint8_t data);
+	uint8_t sby_r();
+	void ald_w(uint8_t data);
+	SNAPSHOT_LOAD_MEMBER(snapshot_cb);
 
 	void ace_io(address_map &map);
 	void ace_mem(address_map &map);
@@ -266,7 +266,7 @@ SNAPSHOT_LOAD_MEMBER(ace_state::snapshot_cb)
 //   io_r -
 //-------------------------------------------------
 
-READ8_MEMBER( ace_state::io_r )
+uint8_t ace_state::io_r(offs_t offset)
 {
 	uint8_t data = 0xff;
 
@@ -299,7 +299,7 @@ READ8_MEMBER( ace_state::io_r )
 //   io_w -
 //-------------------------------------------------
 
-WRITE8_MEMBER( ace_state::io_w )
+void ace_state::io_w(uint8_t data)
 {
 	m_cassette->output(1);
 	m_speaker->level_w(1);
@@ -310,22 +310,22 @@ WRITE8_MEMBER( ace_state::io_w )
 //   ppi_r -
 //-------------------------------------------------
 
-READ8_MEMBER( ace_state::ppi_pa_r )
+uint8_t ace_state::ppi_pa_r()
 {
 	return m_ppi->read(0);
 }
 
-READ8_MEMBER( ace_state::ppi_pb_r )
+uint8_t ace_state::ppi_pb_r()
 {
 	return m_ppi->read(1);
 }
 
-READ8_MEMBER( ace_state::ppi_pc_r )
+uint8_t ace_state::ppi_pc_r()
 {
 	return m_ppi->read(2);
 }
 
-READ8_MEMBER( ace_state::ppi_control_r )
+uint8_t ace_state::ppi_control_r()
 {
 	return m_ppi->read(3);
 }
@@ -335,22 +335,22 @@ READ8_MEMBER( ace_state::ppi_control_r )
 //   ppi_w -
 //-------------------------------------------------
 
-WRITE8_MEMBER( ace_state::ppi_pa_w )
+void ace_state::ppi_pa_w(uint8_t data)
 {
 	m_ppi->write(0, data);
 }
 
-WRITE8_MEMBER( ace_state::ppi_pb_w )
+void ace_state::ppi_pb_w(uint8_t data)
 {
 	m_ppi->write(1, data);
 }
 
-WRITE8_MEMBER( ace_state::ppi_pc_w )
+void ace_state::ppi_pc_w(uint8_t data)
 {
 	m_ppi->write(2, data);
 }
 
-WRITE8_MEMBER( ace_state::ppi_control_w )
+void ace_state::ppi_control_w(uint8_t data)
 {
 	m_ppi->write(3, data);
 }
@@ -360,22 +360,22 @@ WRITE8_MEMBER( ace_state::ppi_control_w )
 //   pio_r -
 //-------------------------------------------------
 
-READ8_MEMBER(ace_state::pio_ad_r)
+uint8_t ace_state::pio_ad_r()
 {
 	return m_z80pio->data_read(0);
 }
 
-READ8_MEMBER(ace_state::pio_bd_r)
+uint8_t ace_state::pio_bd_r()
 {
 	return m_z80pio->data_read(1);
 }
 
-READ8_MEMBER(ace_state::pio_ac_r)
+uint8_t ace_state::pio_ac_r()
 {
 	return m_z80pio->control_read();
 }
 
-READ8_MEMBER(ace_state::pio_bc_r)
+uint8_t ace_state::pio_bc_r()
 {
 	return m_z80pio->control_read();
 }
@@ -385,22 +385,22 @@ READ8_MEMBER(ace_state::pio_bc_r)
 //   pio_w -
 //-------------------------------------------------
 
-WRITE8_MEMBER(ace_state::pio_ad_w)
+void ace_state::pio_ad_w(uint8_t data)
 {
 	m_z80pio->data_write(0, data);
 }
 
-WRITE8_MEMBER(ace_state::pio_bd_w)
+void ace_state::pio_bd_w(uint8_t data)
 {
 	m_z80pio->data_write(1, data);
 }
 
-WRITE8_MEMBER(ace_state::pio_ac_w)
+void ace_state::pio_ac_w(uint8_t data)
 {
 	m_z80pio->control_write(0, data);
 }
 
-WRITE8_MEMBER(ace_state::pio_bc_w)
+void ace_state::pio_bc_w(uint8_t data)
 {
 	m_z80pio->control_write(1, data);
 }
@@ -626,7 +626,7 @@ uint32_t ace_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, c
 //  I8255A interface
 //-------------------------------------------------
 
-READ8_MEMBER(ace_state::sby_r)
+uint8_t ace_state::sby_r()
 {
 	/*
 
@@ -646,7 +646,7 @@ READ8_MEMBER(ace_state::sby_r)
 	return m_sp0256->sby_r();
 }
 
-WRITE8_MEMBER(ace_state::ald_w)
+void ace_state::ald_w(uint8_t data)
 {
 	/*
 
@@ -673,7 +673,7 @@ WRITE8_MEMBER(ace_state::ald_w)
 //  Z80PIO
 //-------------------------------------------------
 
-READ8_MEMBER( ace_state::pio_pa_r )
+uint8_t ace_state::pio_pa_r()
 {
 	/*
 
@@ -693,7 +693,7 @@ READ8_MEMBER( ace_state::pio_pa_r )
 	return 0;
 }
 
-WRITE8_MEMBER( ace_state::pio_pa_w )
+void ace_state::pio_pa_w(uint8_t data)
 {
 	/*
 
@@ -759,7 +759,7 @@ void ace_state::ace(machine_config &config)
 	Z80(config, m_maincpu, XTAL(6'500'000)/2);
 	m_maincpu->set_addrmap(AS_PROGRAM, &ace_state::ace_mem);
 	m_maincpu->set_addrmap(AS_IO, &ace_state::ace_io);
-	config.m_minimum_quantum = attotime::from_hz(60);
+	config.set_maximum_quantum(attotime::from_hz(60));
 
 	// video hardware
 	screen_device &screen(SCREEN(config, SCREEN_TAG, SCREEN_TYPE_RASTER));
@@ -790,7 +790,11 @@ void ace_state::ace(machine_config &config)
 	m_cassette->add_route(ALL_OUTPUTS, "mono", 0.05);
 	m_cassette->set_interface("jupace_cass");
 
-	SNAPSHOT(config, "snapshot", "ace", attotime::from_seconds(1)).set_load_callback(FUNC(ace_state::snapshot_cb), this);
+	// snapshot
+	snapshot_image_device &snapshot(SNAPSHOT(config, "snapshot", "ace"));
+	snapshot.set_delay(attotime::from_double(1.0));
+	snapshot.set_load_callback(FUNC(ace_state::snapshot_cb));
+	snapshot.set_interface("jupace_snap");
 
 	I8255A(config, m_ppi);
 	m_ppi->in_pb_callback().set(FUNC(ace_state::sby_r));
@@ -800,7 +804,7 @@ void ace_state::ace(machine_config &config)
 	m_z80pio->out_int_callback().set_inputline(m_maincpu, INPUT_LINE_IRQ0);
 	m_z80pio->in_pa_callback().set(FUNC(ace_state::pio_pa_r));
 	m_z80pio->out_pa_callback().set(FUNC(ace_state::pio_pa_w));
-	m_z80pio->out_pb_callback().set("cent_data_out", FUNC(output_latch_device::bus_w));
+	m_z80pio->out_pb_callback().set("cent_data_out", FUNC(output_latch_device::write));
 
 	CENTRONICS(config, m_centronics, centronics_devices, "printer");
 
@@ -811,6 +815,7 @@ void ace_state::ace(machine_config &config)
 	RAM(config, RAM_TAG).set_default_size("1K").set_extra_options("16K,32K,48K");
 
 	SOFTWARE_LIST(config, "cass_list").set_original("jupace_cass");
+	SOFTWARE_LIST(config, "snap_list").set_original("jupace_snap");
 }
 
 

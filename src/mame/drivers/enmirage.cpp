@@ -77,10 +77,10 @@ private:
 
 	DECLARE_FLOPPY_FORMATS( floppy_formats );
 
-	DECLARE_WRITE8_MEMBER(mirage_via_write_porta);
-	DECLARE_WRITE8_MEMBER(mirage_via_write_portb);
+	void mirage_via_write_porta(uint8_t data);
+	void mirage_via_write_portb(uint8_t data);
 	DECLARE_WRITE_LINE_MEMBER(mirage_doc_irq);
-	DECLARE_READ8_MEMBER(mirage_adc_read);
+	uint8_t mirage_adc_read();
 
 	void mirage_map(address_map &map);
 
@@ -109,7 +109,7 @@ WRITE_LINE_MEMBER(enmirage_state::mirage_doc_irq)
 //    m_maincpu->set_input_line(M6809_IRQ_LINE, state);
 }
 
-READ8_MEMBER(enmirage_state::mirage_adc_read)
+uint8_t enmirage_state::mirage_adc_read()
 {
 	return 0x00;
 }
@@ -126,7 +126,7 @@ void enmirage_state::mirage_map(address_map &map)
 	map(0x8000, 0xbfff).ram();         // main RAM
 	map(0xc000, 0xdfff).ram();         // expansion RAM
 	map(0xe100, 0xe101).rw("acia6850", FUNC(acia6850_device::read), FUNC(acia6850_device::write));
-	map(0xe200, 0xe2ff).rw(m_via, FUNC(via6522_device::read), FUNC(via6522_device::write));
+	map(0xe200, 0xe2ff).m(m_via, FUNC(via6522_device::map));
 	map(0xe400, 0xe4ff).noprw();
 	map(0xe800, 0xe803).rw(m_fdc, FUNC(wd1772_device::read), FUNC(wd1772_device::write));
 	map(0xec00, 0xecef).rw("es5503", FUNC(es5503_device::read), FUNC(es5503_device::write));
@@ -137,7 +137,7 @@ void enmirage_state::mirage_map(address_map &map)
 // bits 0-2: column select from 0-7
 // bits 3/4 = right and left LED enable
 // bits 5/6/7 keypad rows 0/1/2 return
-WRITE8_MEMBER(enmirage_state::mirage_via_write_porta)
+void enmirage_state::mirage_via_write_porta(uint8_t data)
 {
 	u8 segdata = data & 7;
 	m_display->matrix(((data >> 3) & 3) ^ 3, (1<<segdata));
@@ -151,7 +151,7 @@ WRITE8_MEMBER(enmirage_state::mirage_via_write_porta)
 //  bit 1: OUT upper/lower bank (64k halves)
 //  bit 0: OUT bank 0/bank 1 (32k halves)
 
-WRITE8_MEMBER(enmirage_state::mirage_via_write_portb)
+void enmirage_state::mirage_via_write_portb(uint8_t data)
 {
 	int bank = 0;
 

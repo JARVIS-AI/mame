@@ -241,7 +241,7 @@
                                            _
 
 
-    Regarding the abobe diagram, there are 2 different states controlled by both 06B53P.
+    Regarding the above diagram, there are 2 different states controlled by both 06B53P.
     Each state arrange a different palette that will be assigned to each graphics bank.
 
     As we can see here, same pin of different PROMs are connected together in parallel.
@@ -304,7 +304,7 @@
     Test Mode CANCEL           DE  E0  00  DF  EF  01  "call attendant"
     Coin                       EF  E0  00  DF  F6  01  "ready?"
 
-    (*) "big" and "small" are splitted from the sample "big or small".
+    (*) "big" and "small" are split from the sample "big or small".
 
 
     So, you can easily see that writes to ports 0x00-0x01 define the start (pos) offset,
@@ -331,7 +331,7 @@
     devices from this hardware, plus V-Sync, H-Sync and (V+H)-Sync (composite) frequencies.
 
     All generated clocks are proportional to the Clock In (12MHz). There are not fixed or
-    harcoded frequencies.
+    hardcoded frequencies.
 
 
     Pinout
@@ -807,7 +807,7 @@ void lucky74_state::machine_reset()
 *    Read/Write  Handlers    *
 *****************************/
 
-READ8_MEMBER(lucky74_state::custom_09R81P_port_r)
+uint8_t lucky74_state::custom_09R81P_port_r(offs_t offset)
 {
 	if (offset != 0x00)
 	{
@@ -819,12 +819,12 @@ READ8_MEMBER(lucky74_state::custom_09R81P_port_r)
 	}
 }
 
-WRITE8_MEMBER(lucky74_state::custom_09R81P_port_w)
+void lucky74_state::custom_09R81P_port_w(offs_t offset, uint8_t data)
 {
 	m_adpcm_reg[offset] = data;
 }
 
-WRITE8_MEMBER(lucky74_state::ym2149_portb_w)
+void lucky74_state::ym2149_portb_w(uint8_t data)
 {
 /*  when is in game mode writes 0x0a.
     when is in test mode writes 0x0e.
@@ -836,28 +836,28 @@ WRITE8_MEMBER(lucky74_state::ym2149_portb_w)
 	flip_screen_set(data & 0x01);
 }
 
-READ8_MEMBER(lucky74_state::usart_8251_r)
+uint8_t lucky74_state::usart_8251_r()
 {
 	/* reads to USART 8251 port */
 	logerror("read from USART port.\n");
 	return 0xff;
 }
 
-WRITE8_MEMBER(lucky74_state::usart_8251_w)
+void lucky74_state::usart_8251_w(uint8_t data)
 {
 	/* writes to USART 8251 port */
 	m_usart_8251 = data;
 	logerror("write to USART port: %02x \n", m_usart_8251);
 }
 
-READ8_MEMBER(lucky74_state::copro_sm7831_r)
+uint8_t lucky74_state::copro_sm7831_r()
 {
 	/* read from SM7831 co-processor */
 	logerror("read from co-processor.\n");
 	return 0xff;
 }
 
-WRITE8_MEMBER(lucky74_state::copro_sm7831_w)
+void lucky74_state::copro_sm7831_w(uint8_t data)
 {
 	/* write to SM7831 co-processor */
 	m_copro_sm7831 = data;
@@ -869,7 +869,7 @@ WRITE8_MEMBER(lucky74_state::copro_sm7831_w)
 *    Lamps    *
 **************/
 
-WRITE8_MEMBER(lucky74_state::lamps_a_w)
+void lucky74_state::lamps_a_w(uint8_t data)
 {
 /*  LAMPSA:
 
@@ -884,7 +884,7 @@ WRITE8_MEMBER(lucky74_state::lamps_a_w)
 	m_lamps[11] = BIT(data, 3);     /* SMALL */
 }
 
-WRITE8_MEMBER(lucky74_state::lamps_b_w)
+void lucky74_state::lamps_b_w(uint8_t data)
 {
 /*  LAMPSB:
 
@@ -1438,7 +1438,7 @@ WRITE_LINE_MEMBER(lucky74_state::lucky74_adpcm_int)
 			/* transferring 1st nibble */
 			m_adpcm_data = memregion("adpcm")->base()[m_adpcm_pos];
 			m_adpcm_pos = (m_adpcm_pos + 1) & 0xffff;
-			m_msm->write_data(m_adpcm_data >> 4);
+			m_msm->data_w(m_adpcm_data >> 4);
 
 			if (m_adpcm_pos == m_adpcm_end)
 			{
@@ -1451,7 +1451,7 @@ WRITE_LINE_MEMBER(lucky74_state::lucky74_adpcm_int)
 		else
 		{
 			/* transferring 2nd nibble */
-			m_msm->write_data(m_adpcm_data & 0x0f);
+			m_msm->data_w(m_adpcm_data & 0x0f);
 			m_adpcm_data = -1;
 		}
 	}

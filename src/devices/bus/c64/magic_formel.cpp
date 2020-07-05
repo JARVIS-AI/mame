@@ -34,7 +34,7 @@
 DEFINE_DEVICE_TYPE(C64_MAGIC_FORMEL, c64_magic_formel_cartridge_device, "c64_magic_formel", "C64 Magic Formel cartridge")
 
 
-WRITE8_MEMBER( c64_magic_formel_cartridge_device::pia_pa_w )
+void c64_magic_formel_cartridge_device::pia_pa_w(uint8_t data)
 {
 	/*
 
@@ -56,7 +56,7 @@ WRITE8_MEMBER( c64_magic_formel_cartridge_device::pia_pa_w )
 	m_ram_oe = BIT(data, 4);
 }
 
-WRITE8_MEMBER( c64_magic_formel_cartridge_device::pia_pb_w )
+void c64_magic_formel_cartridge_device::pia_pb_w(uint8_t data)
 {
 	/*
 
@@ -130,7 +130,7 @@ INPUT_CHANGED_MEMBER( c64_magic_formel_cartridge_device::freeze )
 
 static INPUT_PORTS_START( c64_magic_formel )
 	PORT_START("FREEZE")
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_OTHER ) PORT_NAME("Freeze") PORT_CODE(KEYCODE_F12) PORT_CHANGED_MEMBER(DEVICE_SELF, c64_magic_formel_cartridge_device, freeze, nullptr)
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_OTHER ) PORT_NAME("Freeze") PORT_CODE(KEYCODE_F12) PORT_CHANGED_MEMBER(DEVICE_SELF, c64_magic_formel_cartridge_device, freeze, 0)
 INPUT_PORTS_END
 
 

@@ -10,7 +10,7 @@ Fidelity CSC(and derived) hardware
 - Reversi Sensory Challenger
 
 TODO:
-- verify csce original roms (current set came from an overclock mod)
+- dump/add original csce
 - hook up csce I/O properly, it doesn't have PIAs
 
 *******************************************************************************
@@ -182,6 +182,7 @@ See CSC description above for more information.
 Reversi Sensory Challenger (RSC)
 The 1st version came out in 1980, a program revision was released in 1981.
 Another distinction is the board color and layout, the 1981 version is green.
+Not sure if the 1st version was even released, or just a prototype.
 ---------------------------------
 8*(8+1) buttons, 8*8+1 LEDs
 1KB RAM(2*2114), 4KB ROM
@@ -189,12 +190,17 @@ MOS MPS 6502B CPU, frequency unknown
 MOS MPS 6520 PIA, I/O is nearly same as CSC's PIA 0
 PCB label 510-1035A01
 
+To play it on MAME with the sensorboard device, it is recommended to set up
+keyboard shortcuts for the spawn inputs. Then hold the spawn input down while
+clicking on the game board.
+
 ******************************************************************************/
 
 #include "emu.h"
 #include "cpu/m6502/m6502.h"
 #include "machine/6821pia.h"
 #include "machine/timer.h"
+#include "machine/sensorboard.h"
 #include "sound/s14001a.h"
 #include "sound/dac.h"
 #include "sound/volt_reg.h"
@@ -219,6 +225,7 @@ public:
 		m_maincpu(*this, "maincpu"),
 		m_irq_on(*this, "irq_on"),
 		m_pia(*this, "pia%u", 0),
+		m_board(*this, "board"),
 		m_display(*this, "display"),
 		m_dac(*this, "dac"),
 		m_speech(*this, "speech"),
@@ -233,6 +240,8 @@ public:
 	void su9(machine_config &config);
 	void rsc(machine_config &config);
 
+	DECLARE_INPUT_CHANGED_MEMBER(rsc_init_board);
+
 protected:
 	virtual void machine_start() override;
 
@@ -240,6 +249,7 @@ protected:
 	required_device<cpu_device> m_maincpu;
 	required_device<timer_device> m_irq_on;
 	optional_device_array<pia6821_device, 2> m_pia;
+	required_device<sensorboard_device> m_board;
 	required_device<pwm_display_device> m_display;
 	required_device<dac_bit_interface> m_dac;
 	optional_device<s14001a_device> m_speech;
@@ -260,18 +270,18 @@ protected:
 	u16 read_inputs();
 	void update_display();
 	void update_sound();
-	DECLARE_READ8_MEMBER(speech_r);
+	u8 speech_r(offs_t offset);
 
-	DECLARE_WRITE8_MEMBER(pia0_pa_w);
-	DECLARE_WRITE8_MEMBER(pia0_pb_w);
-	DECLARE_READ8_MEMBER(pia0_pa_r);
+	void pia0_pa_w(u8 data);
+	void pia0_pb_w(u8 data);
+	u8 pia0_pa_r();
 	DECLARE_WRITE_LINE_MEMBER(pia0_ca2_w);
 	DECLARE_WRITE_LINE_MEMBER(pia0_cb2_w);
 	DECLARE_READ_LINE_MEMBER(pia0_ca1_r);
 	DECLARE_READ_LINE_MEMBER(pia0_cb1_r);
-	DECLARE_WRITE8_MEMBER(pia1_pa_w);
-	DECLARE_WRITE8_MEMBER(pia1_pb_w);
-	DECLARE_READ8_MEMBER(pia1_pb_r);
+	void pia1_pa_w(u8 data);
+	void pia1_pb_w(u8 data);
+	u8 pia1_pb_r();
 	DECLARE_WRITE_LINE_MEMBER(pia1_ca2_w);
 
 	u8 m_led_data;
@@ -327,10 +337,38 @@ void su9_state::su9_set_cpu_freq()
 
 
 /******************************************************************************
-    Devices, I/O
+    I/O
 ******************************************************************************/
 
 // misc handlers
+
+INPUT_CHANGED_MEMBER(csc_state::rsc_init_board)
+{
+	if (!newval)
+		return;
+
+	m_board->cancel_sensor();
+	m_board->cancel_hand();
+	m_board->clear_board();
+
+	// 2 possible initial board positions
+	if (param)
+	{
+		m_board->write_piece(3, 3, 2);
+		m_board->write_piece(4, 3, 1);
+		m_board->write_piece(3, 4, 2);
+		m_board->write_piece(4, 4, 1);
+	}
+	else
+	{
+		m_board->write_piece(3, 3, 1);
+		m_board->write_piece(4, 3, 2);
+		m_board->write_piece(3, 4, 2);
+		m_board->write_piece(4, 4, 1);
+	}
+
+	m_board->refresh();
+}
 
 u16 csc_state::read_inputs()
 {
@@ -338,7 +376,7 @@ u16 csc_state::read_inputs()
 
 	// read (chess)board sensors
 	if (m_inp_mux < 8)
-		data = m_inputs[m_inp_mux]->read();
+		data = m_board->read_file(m_inp_mux);
 
 	// read other buttons
 	if (m_inp_mux < 9)
@@ -360,7 +398,7 @@ void csc_state::update_sound()
 	m_dac->write(BIT(1 << m_inp_mux, 9));
 }
 
-READ8_MEMBER(csc_state::speech_r)
+u8 csc_state::speech_r(offs_t offset)
 {
 	return m_speech_rom[m_speech_bank << 12 | offset];
 }
@@ -368,13 +406,13 @@ READ8_MEMBER(csc_state::speech_r)
 
 // 6821 PIA 0
 
-READ8_MEMBER(csc_state::pia0_pa_r)
+u8 csc_state::pia0_pa_r()
 {
 	// d0-d5: button row 0-5
 	return (read_inputs() & 0x3f) | 0xc0;
 }
 
-WRITE8_MEMBER(csc_state::pia0_pa_w)
+void csc_state::pia0_pa_w(u8 data)
 {
 	// d6,d7: 7442 A0,A1
 	m_inp_mux = (m_inp_mux & ~3) | (data >> 6 & 3);
@@ -382,7 +420,7 @@ WRITE8_MEMBER(csc_state::pia0_pa_w)
 	update_sound();
 }
 
-WRITE8_MEMBER(csc_state::pia0_pb_w)
+void csc_state::pia0_pb_w(u8 data)
 {
 	// d0-d7: led row data
 	m_led_data = data;
@@ -420,17 +458,17 @@ WRITE_LINE_MEMBER(csc_state::pia0_ca2_w)
 
 // 6821 PIA 1
 
-WRITE8_MEMBER(csc_state::pia1_pa_w)
+void csc_state::pia1_pa_w(u8 data)
 {
 	// d0-d5: TSI C0-C5
-	m_speech->data_w(space, 0, data & 0x3f);
+	m_speech->data_w(data & 0x3f);
 
 	// d0-d7: data for the 4 7seg leds, bits are ABFGHCDE (H is extra led)
 	m_7seg_data = bitswap<8>(data,0,1,5,6,7,2,3,4);
 	update_display();
 }
 
-WRITE8_MEMBER(csc_state::pia1_pb_w)
+void csc_state::pia1_pb_w(u8 data)
 {
 	// d0: speech ROM A12
 	m_speech->force_update(); // update stream to now
@@ -443,7 +481,7 @@ WRITE8_MEMBER(csc_state::pia1_pb_w)
 	m_speech->set_output_gain(0, (data & 0x10) ? 0.25 : 1.0);
 }
 
-READ8_MEMBER(csc_state::pia1_pb_r)
+u8 csc_state::pia1_pb_r()
 {
 	// d2: printer?
 	u8 data = 0x04;
@@ -505,107 +543,23 @@ void csc_state::rsc_map(address_map &map)
     Input Ports
 ******************************************************************************/
 
-INPUT_PORTS_START( generic_cb_buttons )
-	PORT_START("IN.0")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-
-	PORT_START("IN.1")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-
-	PORT_START("IN.2")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-
-	PORT_START("IN.3")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-
-	PORT_START("IN.4")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-
-	PORT_START("IN.5")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-
-	PORT_START("IN.6")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-
-	PORT_START("IN.7")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("Board Sensor")
-INPUT_PORTS_END
-
 static INPUT_PORTS_START( csc )
-	PORT_INCLUDE( generic_cb_buttons )
-
-	PORT_MODIFY("IN.0")
+	PORT_START("IN.0")
 	PORT_BIT(0x100, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_SPACE) PORT_NAME("Speaker")
 
-	PORT_MODIFY("IN.1")
+	PORT_START("IN.1")
 	PORT_BIT(0x100, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_V) PORT_NAME("RV")
 
-	PORT_MODIFY("IN.2")
+	PORT_START("IN.2")
 	PORT_BIT(0x100, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_T) PORT_NAME("TM")
 
-	PORT_MODIFY("IN.3")
+	PORT_START("IN.3")
 	PORT_BIT(0x100, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_L) PORT_NAME("LV")
 
-	PORT_MODIFY("IN.4")
+	PORT_START("IN.4")
 	PORT_BIT(0x100, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_M) PORT_NAME("DM")
 
-	PORT_MODIFY("IN.5")
+	PORT_START("IN.5")
 	PORT_BIT(0x100, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_S) PORT_NAME("ST")
 
 	PORT_START("IN.8")
@@ -631,30 +585,32 @@ static INPUT_PORTS_START( su9 )
 	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_6) PORT_CODE(KEYCODE_6_PAD) PORT_NAME("PB / King")
 
 	PORT_START("FAKE")
-	PORT_CONFNAME( 0x03, 0x00, "CPU Frequency" ) PORT_CHANGED_MEMBER(DEVICE_SELF, su9_state, su9_cpu_freq, nullptr) // factory set
+	PORT_CONFNAME( 0x03, 0x00, "CPU Frequency" ) PORT_CHANGED_MEMBER(DEVICE_SELF, su9_state, su9_cpu_freq, 0) // factory set
 	PORT_CONFSETTING(    0x00, "1.95MHz (original)" )
 	PORT_CONFSETTING(    0x01, "2.5MHz (Deluxe)" )
 	PORT_CONFSETTING(    0x02, "3MHz (Septennial)" )
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( rsc )
-	PORT_INCLUDE( generic_cb_buttons )
-
 	PORT_START("IN.8")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_8) PORT_CODE(KEYCODE_1_PAD) PORT_NAME("ST")
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_7) PORT_CODE(KEYCODE_2_PAD) PORT_NAME("RV")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_6) PORT_CODE(KEYCODE_3_PAD) PORT_NAME("DM")
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_5) PORT_CODE(KEYCODE_4_PAD) PORT_NAME("CL")
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_4) PORT_CODE(KEYCODE_5_PAD) PORT_NAME("LV")
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_3) PORT_CODE(KEYCODE_6_PAD) PORT_NAME("PV")
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_1) PORT_CODE(KEYCODE_1_PAD) PORT_NAME("ST")
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_2) PORT_CODE(KEYCODE_2_PAD) PORT_NAME("RV")
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_3) PORT_CODE(KEYCODE_3_PAD) PORT_NAME("DM")
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_4) PORT_CODE(KEYCODE_4_PAD) PORT_NAME("CL")
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_5) PORT_CODE(KEYCODE_5_PAD) PORT_NAME("LV")
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_6) PORT_CODE(KEYCODE_6_PAD) PORT_NAME("PV")
 	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_SPACE) PORT_NAME("Speaker")
 	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_R) PORT_NAME("RE")
+
+	PORT_START("BOARD")
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_OTHER) PORT_CHANGED_MEMBER(DEVICE_SELF, csc_state, rsc_init_board, 0) PORT_NAME("Board Reset A")
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_OTHER) PORT_CHANGED_MEMBER(DEVICE_SELF, csc_state, rsc_init_board, 1) PORT_NAME("Board Reset B")
 INPUT_PORTS_END
 
 
 
 /******************************************************************************
-    Machine Drivers
+    Machine Configs
 ******************************************************************************/
 
 void csc_state::csc(machine_config &config)
@@ -683,6 +639,10 @@ void csc_state::csc(machine_config &config)
 	m_pia[1]->writepb_handler().set(FUNC(csc_state::pia1_pb_w));
 	m_pia[1]->ca2_handler().set(FUNC(csc_state::pia1_ca2_w));
 
+	SENSORBOARD(config, m_board).set_type(sensorboard_device::BUTTONS);
+	m_board->init_cb().set(m_board, FUNC(sensorboard_device::preset_chess));
+	m_board->set_delay(attotime::from_msec(200));
+
 	/* video hardware */
 	PWM_DISPLAY(config, m_display).set_size(9, 16);
 	m_display->set_segmask(0xf, 0x7f);
@@ -703,7 +663,7 @@ void csc_state::csce(machine_config &config)
 	csc(config);
 
 	/* basic machine hardware */
-	m_maincpu->set_clock(4_MHz_XTAL);
+	m_maincpu->set_clock(5_MHz_XTAL);
 	m_maincpu->set_addrmap(AS_PROGRAM, &csc_state::su9_map);
 }
 
@@ -736,6 +696,10 @@ void csc_state::rsc(machine_config &config)
 	m_pia[0]->ca2_handler().set(FUNC(csc_state::pia0_ca2_w));
 	m_pia[0]->cb2_handler().set(FUNC(csc_state::pia0_cb2_w));
 
+	SENSORBOARD(config, m_board).set_type(sensorboard_device::BUTTONS);
+	m_board->set_spawnpoints(2);
+	m_board->set_delay(attotime::from_msec(300));
+
 	/* video hardware */
 	PWM_DISPLAY(config, m_display).set_size(9, 16);
 	config.set_default_layout(layout_fidel_rsc);
@@ -754,11 +718,11 @@ void csc_state::rsc(machine_config &config)
 
 ROM_START( csc )
 	ROM_REGION( 0x10000, "maincpu", 0 )
-	ROM_LOAD("101-64019", 0x2000, 0x2000, CRC(08a3577c) SHA1(69fe379d21a9d4b57c84c3832d7b3e7431eec341) )
-	ROM_LOAD("1025a03",   0xa000, 0x2000, CRC(63982c07) SHA1(5ed4356323d5c80df216da55994abe94ba4aa94c) )
-	ROM_LOAD("1025a02",   0xc000, 0x2000, CRC(9e6e7c69) SHA1(4f1ed9141b6596f4d2b1217d7a4ba48229f3f1b0) )
-	ROM_LOAD("1025a01",   0xe000, 0x2000, CRC(57f068c3) SHA1(7d2ac4b9a2fba19556782863bdd89e2d2d94e97b) )
-	ROM_LOAD("74s474",    0xfe00, 0x0200, CRC(4511ba31) SHA1(e275b1739f8c3aa445cccb6a2b597475f507e456) )
+	ROM_LOAD("101-64019",   0x2000, 0x2000, CRC(08a3577c) SHA1(69fe379d21a9d4b57c84c3832d7b3e7431eec341) )
+	ROM_LOAD("101-1025a03", 0xa000, 0x2000, CRC(63982c07) SHA1(5ed4356323d5c80df216da55994abe94ba4aa94c) )
+	ROM_LOAD("101-1025a02", 0xc000, 0x2000, CRC(9e6e7c69) SHA1(4f1ed9141b6596f4d2b1217d7a4ba48229f3f1b0) )
+	ROM_LOAD("101-1025a01", 0xe000, 0x2000, CRC(57f068c3) SHA1(7d2ac4b9a2fba19556782863bdd89e2d2d94e97b) )
+	ROM_LOAD("74s474",      0xfe00, 0x0200, CRC(4511ba31) SHA1(e275b1739f8c3aa445cccb6a2b597475f507e456) )
 
 	// speech ROM
 	ROM_DEFAULT_BIOS("en")
@@ -857,9 +821,9 @@ ROM_END
 ******************************************************************************/
 
 //    YEAR  NAME      PARENT CMP MACHINE  INPUT  STATE      INIT        COMPANY, FULLNAME, FLAGS
-CONS( 1981, csc,      0,      0, csc,      csc,  csc_state, empty_init, "Fidelity Electronics", "Champion Sensory Chess Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_IMPERFECT_CONTROLS )
-CONS( 1981, csce,     0,      0, csce,     csc,  csc_state, empty_init, "Fidelity Electronics", "Elite Champion Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_IMPERFECT_CONTROLS )
+CONS( 1981, csc,      0,      0, csc,      csc,  csc_state, empty_init, "Fidelity Electronics", "Champion Sensory Chess Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1981, csce,     0,      0, csce,     csc,  csc_state, empty_init, "Fidelity Electronics", "Elite Champion Challenger (Travemuende version)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 
-CONS( 1983, super9cc, 0,      0, su9,      su9,  su9_state, empty_init, "Fidelity Electronics", "Super 9 Sensory Chess Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_IMPERFECT_CONTROLS )
+CONS( 1983, super9cc, 0,      0, su9,      su9,  su9_state, empty_init, "Fidelity Electronics", "Super \"9\" Sensory Chess Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 
-CONS( 1981, reversic, 0,      0, rsc,      rsc,  csc_state, empty_init, "Fidelity Electronics", "Reversi Sensory Challenger (green version)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_IMPERFECT_CONTROLS )
+CONS( 1981, reversic, 0,      0, rsc,      rsc,  csc_state, empty_init, "Fidelity Electronics", "Reversi Sensory Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )

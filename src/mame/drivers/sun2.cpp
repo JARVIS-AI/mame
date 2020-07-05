@@ -174,14 +174,14 @@ private:
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 
-	DECLARE_READ16_MEMBER( mmu_r );
-	DECLARE_WRITE16_MEMBER( mmu_w );
+	uint16_t mmu_r(offs_t offset, uint16_t mem_mask = ~0);
+	void mmu_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	uint16_t tl_mmu_r(uint8_t fc, offs_t offset, uint16_t mem_mask);
 	void tl_mmu_w(uint8_t fc, offs_t offset, uint16_t data, uint16_t mem_mask);
-	DECLARE_READ16_MEMBER( video_ctrl_r );
-	DECLARE_WRITE16_MEMBER( video_ctrl_w );
-	DECLARE_READ16_MEMBER( ram_r );
-	DECLARE_WRITE16_MEMBER( ram_w );
+	uint16_t video_ctrl_r();
+	void video_ctrl_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	uint16_t ram_r(offs_t offset);
+	void ram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	uint8_t ethernet_r();
 	void ethernet_w(uint8_t data);
 	DECLARE_WRITE_LINE_MEMBER(ethernet_int_w);
@@ -212,18 +212,18 @@ private:
 	uint8_t m_ethernet_status;
 };
 
-READ16_MEMBER( sun2_state::ram_r )
+uint16_t sun2_state::ram_r(offs_t offset)
 {
 	if (offset < m_ram_size_words) return m_ram_ptr[offset];
 	return 0xffff;
 }
 
-WRITE16_MEMBER( sun2_state::ram_w )
+void sun2_state::ram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (offset < m_ram_size_words) COMBINE_DATA(&m_ram_ptr[offset]);
 }
 
-READ16_MEMBER( sun2_state::mmu_r )
+uint16_t sun2_state::mmu_r(offs_t offset, uint16_t mem_mask)
 {
 	return tl_mmu_r(m_maincpu->get_fc(), offset, mem_mask);
 }
@@ -360,7 +360,7 @@ uint16_t sun2_state::tl_mmu_r(uint8_t fc, offs_t offset, uint16_t mem_mask)
 	return 0xffff;
 }
 
-WRITE16_MEMBER( sun2_state::mmu_w )
+void sun2_state::mmu_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	tl_mmu_w(m_maincpu->get_fc(), offset, data, mem_mask);
 }
@@ -489,12 +489,12 @@ void sun2_state::tl_mmu_w(uint8_t fc, offs_t offset, uint16_t data, uint16_t mem
 }
 
 // BW2 video control
-READ16_MEMBER( sun2_state::video_ctrl_r )
+uint16_t sun2_state::video_ctrl_r()
 {
 	return m_bw2_ctrl;
 }
 
-WRITE16_MEMBER( sun2_state::video_ctrl_w )
+void sun2_state::video_ctrl_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	//printf("sun2: BW2: %x to video_ctrl\n", data);
 	COMBINE_DATA(&m_bw2_ctrl);
@@ -568,11 +568,11 @@ void sun2_state::vmetype1space_map(address_map &map)
 	map(0x7f0000, 0x7f07ff).rom().region("bootprom", 0);    // uses MMU loophole to read 32k from a 2k window
 	map(0x7f0800, 0x7f0800).mirror(0x7fe).rw(FUNC(sun2_state::ethernet_r), FUNC(sun2_state::ethernet_w)).cswidth(16);
 	// 7f1000-7f17ff: AM9518 encryption processor
-	//AM_RANGE(0x7f1800, 0x7f1801) AM_DEVREADWRITE8(SCC1_TAG, z80scc_device, cb_r, cb_w, 0xff00)
-	//AM_RANGE(0x7f1802, 0x7f1803) AM_DEVREADWRITE8(SCC1_TAG, z80scc_device, db_r, db_w, 0xff00)
+	//map(0x7f1800, 0x7f1800).rw(SCC1_TAG, FUNC(z80scc_device::cb_r), FUNC(z80scc_device::cb_w));
+	//map(0x7f1802, 0x7f1802).rw(SCC1_TAG, FUNC(z80scc_device::db_r), FUNC(z80scc_device::db_w));
 	map(0x7f1804, 0x7f1805).nopr();
-	//AM_RANGE(0x7f1804, 0x7f1805) AM_DEVREADWRITE8(SCC1_TAG, z80scc_device, ca_r, ca_w, 0xff00)
-	//AM_RANGE(0x7f1806, 0x7f1807) AM_DEVREADWRITE8(SCC1_TAG, z80scc_device, da_r, da_w, 0xff00)
+	//map(0x7f1804, 0x7f1804).rw(SCC1_TAG, FUNC(z80scc_device::ca_r), FUNC(z80scc_device::ca_w));
+	//map(0x7f1806, 0x7f1806).rw(SCC1_TAG, FUNC(z80scc_device::da_r), FUNC(z80scc_device::da_w));
 	map(0x7f2000, 0x7f2000).rw(SCC2_TAG, FUNC(z80scc_device::cb_r), FUNC(z80scc_device::cb_w));
 	map(0x7f2002, 0x7f2002).rw(SCC2_TAG, FUNC(z80scc_device::db_r), FUNC(z80scc_device::db_w));
 	map(0x7f2004, 0x7f2004).rw(SCC2_TAG, FUNC(z80scc_device::ca_r), FUNC(z80scc_device::ca_w));
@@ -596,7 +596,7 @@ void sun2_state::mbustype0space_map(address_map &map)
 {
 	map(0x000000, 0x3fffff).rw(FUNC(sun2_state::ram_r), FUNC(sun2_state::ram_w));
 	// 7f80000-7f807ff: Keyboard/mouse SCC8530
-	//AM_RANGE(0x7f8000, 0x7f8007) AM_DEVREADWRITE8(SCC1_TAG, z80scc_device, ab_dc_r, ab_dc_w, 0xff00)
+	//map(0x7f8000, 0x7f8007).rw(SCC1_TAG, FUNC(z80scc_device::ab_dc_r), FUNC(z80scc_device::ab_dc_w)).umask16(0xff00);
 	map(0x700000, 0x71ffff).ram().share("bw2_vram");
 	map(0x781800, 0x781801).rw(FUNC(sun2_state::video_ctrl_r), FUNC(sun2_state::video_ctrl_w));
 }

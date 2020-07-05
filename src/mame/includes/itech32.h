@@ -12,6 +12,7 @@
 #pragma once
 
 #include "machine/6522via.h"
+#include "machine/gen_latch.h"
 #include "machine/nvram.h"
 #include "machine/ticket.h"
 #include "machine/timekpr.h"
@@ -39,6 +40,8 @@ public:
 		m_palette(*this, "palette"),
 		m_ticket(*this, "ticket"),
 		m_timekeeper(*this, "m48t02"),
+		m_soundlatch(*this, "soundlatch"),
+		m_soundlatch2(*this, "soundlatch2"),
 		m_main_ram(*this, "main_ram", 0),
 		m_nvram(*this, "nvram", 0),
 		m_video(*this, "video", 0),
@@ -72,7 +75,7 @@ public:
 	void init_gt3d();
 	void init_gt3dl();
 
-	DECLARE_CUSTOM_INPUT_MEMBER(special_port_r);
+	DECLARE_READ_LINE_MEMBER(special_port_r);
 
 protected:
 	required_device<cpu_device> m_maincpu;
@@ -83,6 +86,8 @@ protected:
 	required_device<palette_device> m_palette;
 	required_device<ticket_dispenser_device> m_ticket;
 	optional_device<timekeeper_device> m_timekeeper;
+	required_device<generic_latch_8_device> m_soundlatch;
+	optional_device<generic_latch_8_device> m_soundlatch2;
 
 	optional_shared_ptr<u16> m_main_ram;
 	optional_shared_ptr<u16> m_nvram;
@@ -99,9 +104,7 @@ protected:
 	u8 m_xint_state;
 	u8 m_qint_state;
 	u8 m_irq_base;
-	u8 m_sound_data;
 	u8 m_sound_return;
-	u8 m_sound_int_state;
 	offs_t m_itech020_prot_address;
 	int m_special_result;
 	int m_p1_effx;
@@ -148,9 +151,9 @@ protected:
 	void sound_bank_w(u8 data);
 	void sound_data_w(u8 data);
 	u8 sound_return_r();
-	u8 sound_data_r();
 	void sound_return_w(u8 data);
 	u8 sound_data_buffer_r();
+	void sound_control_w(u8 data);
 	void firq_clear_w(u8 data);
 	void timekill_colora_w(u8 data);
 	void timekill_colorbc_w(u8 data);
@@ -158,7 +161,7 @@ protected:
 	template<unsigned Layer> void color_w(u8 data);
 	void bloodstm_plane_w(u8 data);
 	void itech020_plane_w(u8 data);
-	DECLARE_WRITE16_MEMBER(bloodstm_paletteram_w);
+	void bloodstm_paletteram_w(offs_t offset, u16 data, u16 mem_mask = u16(~0));
 	void video_w(offs_t offset, u16 data, u16 mem_mask = u16(~0));
 	u16 video_r(offs_t offset);
 	void bloodstm_video_w(offs_t offset, u16 data, u16 mem_mask = u16(~0));
@@ -176,7 +179,6 @@ protected:
 
 	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	WRITE_LINE_MEMBER(generate_int1);
-	TIMER_CALLBACK_MEMBER(delayed_sound_data_w);
 	TIMER_CALLBACK_MEMBER(scanline_interrupt);
 	inline offs_t compute_safe_address(int x, int y);
 	inline void disable_clipping();
@@ -226,14 +228,14 @@ protected:
 	u16 steering_r();
 	u16 gas_r();
 
-	DECLARE_READ32_MEMBER(tms1_speedup_r);
-	DECLARE_READ32_MEMBER(tms2_speedup_r);
-	DECLARE_WRITE32_MEMBER(tms_reset_assert_w);
-	DECLARE_WRITE32_MEMBER(tms_reset_clear_w);
-	DECLARE_WRITE32_MEMBER(tms1_68k_ram_w);
-	DECLARE_WRITE32_MEMBER(tms2_68k_ram_w);
-	DECLARE_WRITE32_MEMBER(tms1_trigger_w);
-	DECLARE_WRITE32_MEMBER(tms2_trigger_w);
+	u32 tms1_speedup_r(address_space &space);
+	u32 tms2_speedup_r(address_space &space);
+	void tms_reset_assert_w(u32 data);
+	void tms_reset_clear_w(u32 data);
+	void tms1_68k_ram_w(offs_t offset, u32 data, u32 mem_mask = ~0);
+	void tms2_68k_ram_w(offs_t offset, u32 data, u32 mem_mask = ~0);
+	void tms1_trigger_w(offs_t offset, u32 data, u32 mem_mask = ~0);
+	void tms2_trigger_w(offs_t offset, u32 data, u32 mem_mask = ~0);
 
 	void zbuf_control_w(offs_t offset, u32 data, u32 mem_mask = u32(~0));
 

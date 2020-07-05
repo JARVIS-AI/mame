@@ -46,7 +46,7 @@ void hng64_state::write_comm_data(uint32_t offset,uint8_t data)
 
 }
 
-READ8_MEMBER(hng64_state::hng64_comm_space_r)
+uint8_t hng64_state::hng64_comm_space_r(offs_t offset)
 {
 	if((offset & 0xfc00) == 0) // B0 is fixed at 0-0x3ff
 		return m_comm_rom[offset];
@@ -60,7 +60,7 @@ READ8_MEMBER(hng64_state::hng64_comm_space_r)
 	return 0xff;
 }
 
-WRITE8_MEMBER(hng64_state::hng64_comm_space_w)
+void hng64_state::hng64_comm_space_w(offs_t offset, uint8_t data)
 {
 	if((offset & 0xfc00) == 0) // B0 is fixed at 0-0x3ff
 		return;// m_comm_rom[offset];
@@ -75,7 +75,7 @@ WRITE8_MEMBER(hng64_state::hng64_comm_space_w)
 	}
 }
 
-READ8_MEMBER(hng64_state::hng64_comm_mmu_r)
+uint8_t hng64_state::hng64_comm_mmu_r(offs_t offset)
 {
 	return m_mmu_regs[offset];
 }
@@ -83,7 +83,7 @@ READ8_MEMBER(hng64_state::hng64_comm_mmu_r)
 #define MMUA (m_mmu_regs[(offset&~1)+0]>>6)|(m_mmu_regs[(offset&~1)+1]<<2)
 #define MMUB (m_mmu_regs[(offset&~1)+0]&0x3f)
 
-WRITE8_MEMBER(hng64_state::hng64_comm_mmu_w)
+void hng64_state::hng64_comm_mmu_w(offs_t offset, uint8_t data)
 {
 	m_mmu_regs[offset] = data;
 
@@ -116,20 +116,20 @@ void hng64_state::hng_comm_io_map(address_map &map)
 	map.global_mask(0xff);
 	/* Reserved for the KL5C80 internal hardware */
 	map(0x00, 0x07).rw(FUNC(hng64_state::hng64_comm_mmu_r), FUNC(hng64_state::hng64_comm_mmu_w));
-//  AM_RANGE(0x08,0x1f) AM_NOP              /* Reserved */
-//  AM_RANGE(0x20,0x25) AM_READWRITE        /* Timer/Counter B */           /* hng64 writes here */
-//  AM_RANGE(0x27,0x27) AM_NOP              /* Reserved */
-//  AM_RANGE(0x28,0x2b) AM_READWRITE        /* Timer/Counter A */           /* hng64 writes here */
-//  AM_RANGE(0x2c,0x2f) AM_READWRITE        /* Parallel port A */
-//  AM_RANGE(0x30,0x33) AM_READWRITE        /* Parallel port B */
-//  AM_RANGE(0x34,0x37) AM_READWRITE        /* Interrupt controller */      /* hng64 writes here */
-//  AM_RANGE(0x38,0x39) AM_READWRITE        /* Serial port */               /* hng64 writes here */
-//  AM_RANGE(0x3a,0x3b) AM_READWRITE        /* System control register */   /* hng64 writes here */
-//  AM_RANGE(0x3c,0x3f) AM_NOP              /* Reserved */
+//  map(0x08, 0x1f).noprw();              /* Reserved */
+//  map(0x20, 0x25).rw(hng64_state::));   /* Timer/Counter B */           /* hng64 writes here */
+//  map(0x27, 0x27).noprw();              /* Reserved */
+//  map(0x28, 0x2b).rw(hng64_state::)); /* Timer/Counter A */           /* hng64 writes here */
+//  map(0x2c, 0x2f).rw(hng64_state::)); /* Parallel port A */
+//  map(0x30, 0x33).rw(hng64_state::)); /* Parallel port B */
+//  map(0x34, 0x37).rw(hng64_state::)); /* Interrupt controller */      /* hng64 writes here */
+//  map(0x38, 0x39).rw(hng64_state::)); /* Serial port */               /* hng64 writes here */
+//  map(0x3a, 0x3b).rw(hng64_state::)); /* System control register */   /* hng64 writes here */
+//  map(0x3c, 0x3f).noprw();              /* Reserved */
 
 	/* General IO */
 	map(0x50, 0x57).rw(FUNC(hng64_state::hng64_com_share_r), FUNC(hng64_state::hng64_com_share_w));
-//  AM_RANGE(0x72,0x72) AM_WRITE            /* dunno yet */
+//  map(0x72, 0x72).w(hng64_state::));            /* dunno yet */
 }
 
 

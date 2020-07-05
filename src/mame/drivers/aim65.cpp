@@ -41,11 +41,11 @@ void aim65_state::mem_map(address_map &map)
 	map(0x1000, 0x3fff).noprw(); /* User available expansions */
 	map(0x4000, 0x7fff).rom(); /* 4 ROM sockets in 16K PROM/ROM module */
 	map(0x8000, 0x9fff).noprw(); /* User available expansions */
-	map(0xa000, 0xa00f).mirror(0x3f0).rw(m_via1, FUNC(via6522_device::read), FUNC(via6522_device::write)); // user via
+	map(0xa000, 0xa00f).mirror(0x3f0).m(m_via1, FUNC(via6522_device::map)); // user via
 	map(0xa400, 0xa47f).m(m_riot, FUNC(mos6532_new_device::ram_map));
 	map(0xa480, 0xa497).m(m_riot, FUNC(mos6532_new_device::io_map));
 	map(0xa498, 0xa7ff).noprw(); /* Not available */
-	map(0xa800, 0xa80f).mirror(0x3f0).rw(m_via0, FUNC(via6522_device::read), FUNC(via6522_device::write)); // system via
+	map(0xa800, 0xa80f).mirror(0x3f0).m(m_via0, FUNC(via6522_device::map)); // system via
 	map(0xac00, 0xac03).rw(m_pia, FUNC(pia6821_device::read), FUNC(pia6821_device::write));
 	map(0xac04, 0xac43).ram(); /* PIA RAM */
 	map(0xac44, 0xafff).noprw(); /* Not available */
@@ -139,7 +139,7 @@ static INPUT_PORTS_START( aim65 )
 	PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("F1")          PORT_CODE(KEYCODE_BACKSLASH)  PORT_CHAR(UCHAR_MAMEKEY(F1))
 
 	PORT_START("switches")
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("RST") PORT_CODE(KEYCODE_LALT) PORT_CHANGED_MEMBER(DEVICE_SELF, aim65_state, reset_button, nullptr)
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("RST") PORT_CODE(KEYCODE_LALT) PORT_CHANGED_MEMBER(DEVICE_SELF, aim65_state, reset_button, 0)
 	PORT_DIPNAME(0x08, 0x08, "KB/TTY") PORT_DIPLOCATION("S3:1")
 	PORT_DIPSETTING(0x00, "TTY")
 	PORT_DIPSETTING(0x08, "KB")
@@ -277,15 +277,15 @@ void aim65_state::aim65(machine_config &config)
 	//m_rs232->rxd_handler().set(m_via0, FUNC(via6522_device::write_pb6));  // function disabled in 6522via.cpp
 	m_rs232->set_option_device_input_defaults("terminal", DEVICE_INPUT_DEFAULTS_NAME(serial_term));
 
-	GENERIC_SOCKET(config, "z26", generic_plain_slot, "aim65_z26_cart", "z26").set_device_load(FUNC(aim65_state::z26_load), this);
-	GENERIC_SOCKET(config, "z25", generic_plain_slot, "aim65_z25_cart", "z25").set_device_load(FUNC(aim65_state::z25_load), this);
-	GENERIC_SOCKET(config, "z24", generic_plain_slot, "aim65_z24_cart", "z24").set_device_load(FUNC(aim65_state::z24_load), this);
+	GENERIC_SOCKET(config, "z26", generic_plain_slot, "aim65_z26_cart", "z26").set_device_load(FUNC(aim65_state::z26_load));
+	GENERIC_SOCKET(config, "z25", generic_plain_slot, "aim65_z25_cart", "z25").set_device_load(FUNC(aim65_state::z25_load));
+	GENERIC_SOCKET(config, "z24", generic_plain_slot, "aim65_z24_cart", "z24").set_device_load(FUNC(aim65_state::z24_load));
 
 	/* PROM/ROM module sockets */
-	GENERIC_SOCKET(config, "z12", generic_plain_slot, "rm65_z12_cart", "z12").set_device_load(FUNC(aim65_state::z12_load), this);
-	GENERIC_SOCKET(config, "z13", generic_plain_slot, "rm65_z13_cart", "z13").set_device_load(FUNC(aim65_state::z13_load), this);
-	GENERIC_SOCKET(config, "z14", generic_plain_slot, "rm65_z14_cart", "z14").set_device_load(FUNC(aim65_state::z14_load), this);
-	GENERIC_SOCKET(config, "z15", generic_plain_slot, "rm65_z15_cart", "z15").set_device_load(FUNC(aim65_state::z15_load), this);
+	GENERIC_SOCKET(config, "z12", generic_plain_slot, "rm65_z12_cart", "z12").set_device_load(FUNC(aim65_state::z12_load));
+	GENERIC_SOCKET(config, "z13", generic_plain_slot, "rm65_z13_cart", "z13").set_device_load(FUNC(aim65_state::z13_load));
+	GENERIC_SOCKET(config, "z14", generic_plain_slot, "rm65_z14_cart", "z14").set_device_load(FUNC(aim65_state::z14_load));
+	GENERIC_SOCKET(config, "z15", generic_plain_slot, "rm65_z15_cart", "z15").set_device_load(FUNC(aim65_state::z15_load));
 
 	/* internal ram */
 	RAM(config, RAM_TAG).set_default_size("4K").set_extra_options("1K,2K,3K");

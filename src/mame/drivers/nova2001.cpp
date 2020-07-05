@@ -145,13 +145,13 @@ CUSTOM_INPUT_MEMBER(nova2001_state::ninjakun_io_A002_ctrl_r)
 	return m_ninjakun_io_a002_ctrl;
 }
 
-WRITE8_MEMBER(nova2001_state::ninjakun_cpu1_io_A002_w)
+void nova2001_state::ninjakun_cpu1_io_A002_w(u8 data)
 {
 	if( data == 0x80 ) m_ninjakun_io_a002_ctrl |= 0x01;
 	if( data == 0x40 ) m_ninjakun_io_a002_ctrl &= ~0x02;
 }
 
-WRITE8_MEMBER(nova2001_state::ninjakun_cpu2_io_A002_w)
+void nova2001_state::ninjakun_cpu2_io_A002_w(u8 data)
 {
 	if( data == 0x40 ) m_ninjakun_io_a002_ctrl |= 0x02;
 	if( data == 0x80 ) m_ninjakun_io_a002_ctrl &= ~0x01;
@@ -393,7 +393,7 @@ static INPUT_PORTS_START( ninjakun )
 
 	PORT_START("IN2")   /* 0xa002 */
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_CUSTOM ) PORT_VBLANK("screen")
-	PORT_BIT( 0x0c, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, nova2001_state,ninjakun_io_A002_ctrl_r, nullptr)
+	PORT_BIT( 0x0c, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(nova2001_state, ninjakun_io_A002_ctrl_r)
 
 	PORT_START("DSW1") // printed "SW 2"
 	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Cabinet ) )  PORT_DIPLOCATION("SW2:1")
@@ -688,7 +688,7 @@ void nova2001_state::ninjakun(machine_config &config)
 	subcpu.set_addrmap(AS_PROGRAM, &nova2001_state::ninjakun_cpu2_map);
 	subcpu.set_periodic_int(FUNC(nova2001_state::irq0_line_hold), attotime::from_hz(4*60)); /* ? */
 
-	config.m_minimum_quantum = attotime::from_hz(6000);  /* 100 CPU slices per frame */
+	config.set_maximum_quantum(attotime::from_hz(6000));  /* 100 CPU slices per frame */
 
 	MCFG_MACHINE_START_OVERRIDE(nova2001_state,ninjakun)
 
@@ -766,7 +766,7 @@ void nova2001_state::raiders5(machine_config &config)
 	subcpu.set_addrmap(AS_PROGRAM, &nova2001_state::raiders5_cpu2_map);
 	subcpu.set_periodic_int(FUNC(nova2001_state::irq0_line_hold), attotime::from_hz(4*60));  /* ? */
 
-	config.m_minimum_quantum = attotime::from_hz(24000);
+	config.set_maximum_quantum(attotime::from_hz(24000));
 
 	/* video hardware */
 	screen_device &screen(SCREEN(config, "screen", SCREEN_TYPE_RASTER));

@@ -23,17 +23,17 @@
 
 /* Video RAM Access */
 
-READ8_MEMBER( v1050_state::attr_r )
+uint8_t v1050_state::attr_r()
 {
 	return m_attr;
 }
 
-WRITE8_MEMBER( v1050_state::attr_w )
+void v1050_state::attr_w(uint8_t data)
 {
 	m_attr = data;
 }
 
-READ8_MEMBER( v1050_state::videoram_r )
+uint8_t v1050_state::videoram_r(offs_t offset)
 {
 	if (offset >= 0x2000)
 	{
@@ -43,7 +43,7 @@ READ8_MEMBER( v1050_state::videoram_r )
 	return m_video_ram[offset];
 }
 
-WRITE8_MEMBER( v1050_state::videoram_w )
+void v1050_state::videoram_w(offs_t offset, uint8_t data)
 {
 	m_video_ram[offset] = data;
 
@@ -115,7 +115,7 @@ void v1050_state::v1050_video(machine_config &config)
 	m_crtc->set_screen(SCREEN_TAG);
 	m_crtc->set_show_border_area(true);
 	m_crtc->set_char_width(8);
-	m_crtc->set_update_row_callback(FUNC(v1050_state::crtc_update_row), this);
+	m_crtc->set_update_row_callback(FUNC(v1050_state::crtc_update_row));
 	m_crtc->out_vsync_callback().set(FUNC(v1050_state::crtc_vs_w));
 
 	screen_device &screen(SCREEN(config, SCREEN_TAG, SCREEN_TYPE_RASTER, rgb_t::green()));

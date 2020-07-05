@@ -25,7 +25,7 @@
 #define LOG_GROM         (1U<<8)   // GROM access
 #define LOG_RPK          (1U<<9)   // RPK handler
 
-#define VERBOSE ( LOG_WARN )
+#define VERBOSE ( LOG_GENERAL | LOG_WARN )
 #include "logmacro.h"
 
 DEFINE_DEVICE_TYPE_NS(TI99_CART, bus::ti99::gromport, ti99_cartridge_device, "ti99cart", "TI-99 cartridge")
@@ -338,7 +338,7 @@ void ti99_cartridge_device::set_slot(int i)
 	m_slot = i;
 }
 
-READ8Z_MEMBER(ti99_cartridge_device::readz)
+void ti99_cartridge_device::readz(offs_t offset, uint8_t *value)
 {
 	if (m_pcb != nullptr)
 		m_pcb->readz(offset, value);
@@ -350,7 +350,7 @@ void ti99_cartridge_device::write(offs_t offset, uint8_t data)
 		m_pcb->write(offset, data);
 }
 
-READ8Z_MEMBER(ti99_cartridge_device::crureadz)
+void ti99_cartridge_device::crureadz(offs_t offset, uint8_t *value)
 {
 	if (m_pcb != nullptr) m_pcb->crureadz(offset, value);
 }
@@ -440,7 +440,7 @@ const tiny_rom_entry *ti99_cartridge_device::device_rom_region() const
     ROM space
     6000          7000        7fff
     |             |              |
-    |========== ROM1 ============|
+    |========== ROM1 ============|   (or RAM, e.g. in Myarc XB II)
 
 ***************************************************************************/
 
@@ -493,13 +493,19 @@ void ti99_cartridge_pcb::gromwrite(uint8_t data)
     cartridges with up to 16 KiB we need a new PCB type. Unfortunately, such
     cartridges were never developed.
 */
-READ8Z_MEMBER(ti99_cartridge_pcb::readz)
+void ti99_cartridge_pcb::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 	{
 		if (m_rom_ptr!=nullptr)
 		{
 			*value = m_rom_ptr[offset & 0x1fff];
+		}
+		else
+		{
+			// Check if we have RAM in the ROM socket
+			if ((offset & 0x1fff) < m_ram_size)
+				*value = m_ram_ptr[offset & 0x1fff];
 		}
 	}
 	else
@@ -513,7 +519,15 @@ void ti99_cartridge_pcb::write(offs_t offset, uint8_t data)
 {
 	if (m_romspace_selected)
 	{
-		LOGMASKED(LOG_WARN, "Cannot write to ROM space at %04x\n", offset);
+		if (m_ram_ptr == nullptr) LOGMASKED(LOG_WARN, "Cannot write to cartridge ROM space at %04x\n", offset | 0x6000);
+		else
+		{
+			// Check if we have RAM in the ROM socket
+			if ((offset & 0x1fff) < m_ram_size)
+				m_ram_ptr[offset & 0x1fff] = data;
+			else
+				LOGMASKED(LOG_WARN, "Cannot write to cartridge RAM space at %04x\n", offset | 0x6000);
+		}
 	}
 	else
 	{
@@ -522,7 +536,7 @@ void ti99_cartridge_pcb::write(offs_t offset, uint8_t data)
 	}
 }
 
-READ8Z_MEMBER(ti99_cartridge_pcb::crureadz)
+void ti99_cartridge_pcb::crureadz(offs_t offset, uint8_t *value)
 {
 }
 
@@ -595,7 +609,7 @@ WRITE_LINE_MEMBER(ti99_cartridge_pcb::gclock_in)
 
 ******************************************************************************/
 
-READ8Z_MEMBER(ti99_paged12k_cartridge::readz)
+void ti99_paged12k_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 	{
@@ -620,7 +634,7 @@ void ti99_paged12k_cartridge::write(offs_t offset, uint8_t data)
 	{
 		m_rom_page = (offset >> 1) & 1;
 		if ((offset & 1)==0)
-			LOGMASKED(LOG_WARN, "Set ROM page = %d (writing to %04x)\n", m_rom_page, (offset | 0x6000));
+			LOGMASKED(LOG_BANKSWITCH, "Set ROM page = %d (writing to %04x)\n", m_rom_page, (offset | 0x6000));
 	}
 	else
 	{
@@ -650,7 +664,7 @@ void ti99_paged12k_cartridge::write(offs_t offset, uint8_t data)
     6002 = bank 1).
 ******************************************************************************/
 
-READ8Z_MEMBER(ti99_paged16k_cartridge::readz)
+void ti99_paged16k_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 	{
@@ -697,7 +711,7 @@ void ti99_paged16k_cartridge::write(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the minimem cartridge. */
-READ8Z_MEMBER(ti99_minimem_cartridge::readz)
+void ti99_minimem_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 	{
@@ -772,7 +786,7 @@ void ti99_minimem_cartridge::write(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the super cartridge. */
-READ8Z_MEMBER(ti99_super_cartridge::readz)
+void ti99_super_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 	{
@@ -800,7 +814,7 @@ void ti99_super_cartridge::write(offs_t offset, uint8_t data)
 	}
 }
 
-READ8Z_MEMBER(ti99_super_cartridge::crureadz)
+void ti99_super_cartridge::crureadz(offs_t offset, uint8_t *value)
 {
 	// offset is the bit number. The CRU base address is already divided  by 2.
 
@@ -889,7 +903,7 @@ void ti99_super_cartridge::cruwrite(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the mbx cartridge. */
-READ8Z_MEMBER(ti99_mbx_cartridge::readz)
+void ti99_mbx_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 	{
@@ -974,7 +988,7 @@ void ti99_mbx_cartridge::write(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the paged7 cartridge. */
-READ8Z_MEMBER(ti99_paged7_cartridge::readz)
+void ti99_paged7_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 	{
@@ -1060,7 +1074,7 @@ void ti99_paged7_cartridge::write(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the paged379i cartridge. */
-READ8Z_MEMBER(ti99_paged379i_cartridge::readz)
+void ti99_paged379i_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 		*value = m_rom_ptr[(m_rom_page<<13) | (offset & 0x1fff)];
@@ -1111,7 +1125,7 @@ void ti99_paged379i_cartridge::write(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the paged378 cartridge. */
-READ8Z_MEMBER(ti99_paged378_cartridge::readz)
+void ti99_paged378_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 		*value = m_rom_ptr[(m_rom_page<<13) | (offset & 0x1fff)];
@@ -1151,7 +1165,7 @@ void ti99_paged378_cartridge::write(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the paged377 cartridge. */
-READ8Z_MEMBER(ti99_paged377_cartridge::readz)
+void ti99_paged377_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 		*value = m_rom_ptr[(m_rom_page<<13) | (offset & 0x1fff)];
@@ -1205,7 +1219,7 @@ void ti99_paged377_cartridge::write(offs_t offset, uint8_t data)
 ******************************************************************************/
 
 /* Read function for the pagedcru cartridge. */
-READ8Z_MEMBER(ti99_pagedcru_cartridge::readz)
+void ti99_pagedcru_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_romspace_selected)
 		*value = m_rom_ptr[(m_rom_page<<13) | (offset & 0x1fff)];
@@ -1217,7 +1231,7 @@ void ti99_pagedcru_cartridge::write(offs_t offset, uint8_t data)
 	return;
 }
 
-READ8Z_MEMBER(ti99_pagedcru_cartridge::crureadz)
+void ti99_pagedcru_cartridge::crureadz(offs_t offset, uint8_t *value)
 {
 	int page = m_rom_page;
 	if ((offset & 0xf800)==0x0800)
@@ -1299,7 +1313,7 @@ void ti99_gromemu_cartridge::set_gromlines(line_state mline, line_state moline, 
 	}
 }
 
-READ8Z_MEMBER(ti99_gromemu_cartridge::readz)
+void ti99_gromemu_cartridge::readz(offs_t offset, uint8_t *value)
 {
 	if (m_grom_selected)
 	{
@@ -1349,7 +1363,7 @@ void ti99_gromemu_cartridge::write(offs_t offset, uint8_t data)
 	}
 }
 
-READ8Z_MEMBER(ti99_gromemu_cartridge::gromemureadz)
+void ti99_gromemu_cartridge::gromemureadz(offs_t offset, uint8_t *value)
 {
 	// Similar to the GKracker implemented above, we do not have a readable
 	// GROM address counter but use the one from the console GROMs.
@@ -1500,7 +1514,8 @@ void ti99_cartridge_device::rpk::close()
 		if (socket.second->persistent_ram())
 		{
 			// try to open the battery file and write it if possible
-			assert_always(socket.second->get_contents() && (socket.second->get_content_length() > 0), "Buffer is null or length is 0");
+			if (!socket.second->get_contents() || (socket.second->get_content_length() <= 0))
+				throw emu_fatalerror("ti99_cartridge_device::rpk::close: Buffer is null or length is 0");
 
 			emu_file file(m_options.nvram_directory(), OPEN_FLAG_WRITE | OPEN_FLAG_CREATE | OPEN_FLAG_CREATE_PATHS);
 			osd_file::error filerr = file.open(socket.second->get_pathname());
@@ -1685,12 +1700,13 @@ std::unique_ptr<ti99_cartridge_device::rpk_socket> ti99_cartridge_device::rpk_re
 			LOGMASKED(LOG_RPK, "[RPK handler] Loading NVRAM contents from '%s'\n", ram_pname.c_str());
 
 			// Load the NVRAM contents
-			int bytes_read = 0;
-			assert_always(contents && (length > 0), "Buffer is null or length is 0");
+			if (!contents || (length <= 0))
+				throw emu_fatalerror("ti99_cartridge_device::rpk_reader::load_ram_resource: Buffer is null or length is 0");
 
 			// try to open the battery file and read it if possible
 			emu_file file(options.nvram_directory(), OPEN_FLAG_READ);
 			osd_file::error filerr = file.open(ram_pname);
+			int bytes_read = 0;
 			if (filerr == osd_file::error::NONE)
 				bytes_read = file.read(contents, length);
 

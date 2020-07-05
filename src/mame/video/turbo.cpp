@@ -121,21 +121,21 @@ void turbo_state::buckrog_palette(palette_device &palette) const
 TILE_GET_INFO_MEMBER(turbo_state::get_fg_tile_info)
 {
 	int code = m_videoram[tile_index];
-	SET_TILE_INFO_MEMBER(0, code, code >> 2, 0);
+	tileinfo.set(0, code, code >> 2, 0);
 }
 
 
 VIDEO_START_MEMBER(turbo_state,turbo)
 {
 	/* initialize the foreground tilemap */
-	m_fg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(turbo_state::get_fg_tile_info),this), TILEMAP_SCAN_ROWS,  8,8, 32,32);
+	m_fg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(turbo_state::get_fg_tile_info)), TILEMAP_SCAN_ROWS,  8,8, 32,32);
 }
 
 
 VIDEO_START_MEMBER(turbo_state,buckrog)
 {
 	/* initialize the foreground tilemap */
-	m_fg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(turbo_state::get_fg_tile_info),this), TILEMAP_SCAN_ROWS,  8,8, 32,32);
+	m_fg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(turbo_state::get_fg_tile_info)), TILEMAP_SCAN_ROWS,  8,8, 32,32);
 
 	/* allocate the bitmap RAM */
 	m_buckrog_bitmap_ram = std::make_unique<uint8_t[]>(0xe000);
@@ -150,7 +150,7 @@ VIDEO_START_MEMBER(turbo_state,buckrog)
  *
  *************************************/
 
-WRITE8_MEMBER(turbo_state::turbo_videoram_w)
+void turbo_state::turbo_videoram_w(offs_t offset, uint8_t data)
 {
 	m_videoram[offset] = data;
 	if (offset < 0x400)
@@ -161,7 +161,7 @@ WRITE8_MEMBER(turbo_state::turbo_videoram_w)
 }
 
 
-WRITE8_MEMBER(turbo_state::buckrog_bitmap_w)
+void turbo_state::buckrog_bitmap_w(offs_t offset, uint8_t data)
 {
 	m_buckrog_bitmap_ram[offset] = data & 1;
 }

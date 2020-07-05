@@ -161,9 +161,9 @@ protected:
 
 	virtual void machine_start() override;
 
-	DECLARE_WRITE16_MEMBER(btc_trackball_w);
-	DECLARE_READ16_MEMBER(tokimeki_serial_r);
-	DECLARE_WRITE16_MEMBER(tokimeki_serial_w);
+	void btc_trackball_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	uint16_t tokimeki_serial_r();
+	void tokimeki_serial_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	void scsi_dma_read( uint32_t *p_n_psxram, uint32_t n_address, int32_t n_size );
 	void scsi_dma_write( uint32_t *p_n_psxram, uint32_t n_address, int32_t n_size );
 
@@ -194,8 +194,8 @@ public:
 private:
 	virtual void machine_start() override;
 
-	DECLARE_READ16_MEMBER(flash_r);
-	DECLARE_WRITE16_MEMBER(flash_w);
+	uint16_t flash_r(offs_t offset);
+	void flash_w(offs_t offset, uint16_t data);
 
 	void simpbowl_map(address_map &map);
 
@@ -455,7 +455,7 @@ INPUT_PORTS_END
 
 /* Simpsons Bowling */
 
-READ16_MEMBER(simpbowl_state::flash_r)
+uint16_t simpbowl_state::flash_r(offs_t offset)
 {
 	if (offset == 4)   // set odd address
 	{
@@ -477,7 +477,7 @@ READ16_MEMBER(simpbowl_state::flash_r)
 	return 0;
 }
 
-WRITE16_MEMBER(simpbowl_state::flash_w)
+void simpbowl_state::flash_w(offs_t offset, uint16_t data)
 {
 	int chip;
 
@@ -534,7 +534,7 @@ INPUT_PORTS_END
 
 /* Beat the Champ */
 
-WRITE16_MEMBER(konamigv_state::btc_trackball_w)
+void konamigv_state::btc_trackball_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 //  osd_printf_debug( "w %08x %08x %08x %08x\n", m_maincpu->pc(), offset, data, mem_mask );
 
@@ -580,7 +580,7 @@ INPUT_PORTS_END
 
 /* Tokimeki Memorial games - have a mouse and printer and who knows what else */
 
-READ16_MEMBER(konamigv_state::tokimeki_serial_r)
+uint16_t konamigv_state::tokimeki_serial_r()
 {
 	// bits checked: 0x80 and 0x20 for periodic status (800b6968 and 800b69e0 in tmoshs)
 	// 0x08 for reading the serial device (8005e624)
@@ -588,7 +588,7 @@ READ16_MEMBER(konamigv_state::tokimeki_serial_r)
 	return 0xffff;
 }
 
-WRITE16_MEMBER(konamigv_state::tokimeki_serial_w)
+void konamigv_state::tokimeki_serial_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	/*
 	    serial EEPROM-like device here: when mem_mask == 0x000000ff only,
@@ -763,7 +763,7 @@ ROM_START( simpbowl )
 	ROM_LOAD( "simpbowl.25c", 0x000000, 0x000080, CRC(2c61050c) SHA1(16ae7f81cbe841c429c5c7326cf83e87db1782bf) )
 
 	DISK_REGION( "scsi:" SCSI_PORT_DEVICE1 ":cdrom" )
-	DISK_IMAGE_READONLY( "simpbowl", 0, BAD_DUMP SHA1(72b32a863e6891ad3bfc1fdfe9cb90a2bd334d71) )
+	DISK_IMAGE_READONLY( "829uaa02", 0, SHA1(2ec4cc608d5582e478ee047b60ccee67b52f060c) )
 ROM_END
 
 ROM_START( btchamp )

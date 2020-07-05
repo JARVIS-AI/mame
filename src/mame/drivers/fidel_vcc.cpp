@@ -130,7 +130,7 @@ public:
 	// RE button is tied to Z80 RESET pin
 	DECLARE_INPUT_CHANGED_MEMBER(reset_button) { m_maincpu->set_input_line(INPUT_LINE_RESET, newval ? ASSERT_LINE : CLEAR_LINE); }
 
-	// machine drivers
+	// machine configs
 	void vcc(machine_config &config);
 
 protected:
@@ -152,12 +152,12 @@ private:
 
 	// I/O handlers
 	void update_display();
-	DECLARE_READ8_MEMBER(speech_r);
-	DECLARE_WRITE8_MEMBER(ppi_porta_w);
-	DECLARE_READ8_MEMBER(ppi_portb_r);
-	DECLARE_WRITE8_MEMBER(ppi_portb_w);
-	DECLARE_READ8_MEMBER(ppi_portc_r);
-	DECLARE_WRITE8_MEMBER(ppi_portc_w);
+	u8 speech_r(offs_t offset);
+	void ppi_porta_w(u8 data);
+	u8 ppi_portb_r();
+	void ppi_portb_w(u8 data);
+	u8 ppi_portc_r();
+	void ppi_portc_w(u8 data);
 
 	u8 m_led_select;
 	u8 m_7seg_data;
@@ -185,8 +185,9 @@ void vcc_state::machine_start()
 }
 
 
+
 /******************************************************************************
-    Devices, I/O
+    I/O
 ******************************************************************************/
 
 // misc handlers
@@ -198,7 +199,7 @@ void vcc_state::update_display()
 	m_display->matrix(m_led_select >> 2 & 0xf, outdata);
 }
 
-READ8_MEMBER(vcc_state::speech_r)
+u8 vcc_state::speech_r(offs_t offset)
 {
 	return m_speech_rom[m_speech_bank << 12 | offset];
 }
@@ -206,7 +207,7 @@ READ8_MEMBER(vcc_state::speech_r)
 
 // I8255 PPI
 
-WRITE8_MEMBER(vcc_state::ppi_porta_w)
+void vcc_state::ppi_porta_w(u8 data)
 {
 	// d0-d6: digit segment data, bits are xABCDEFG
 	m_7seg_data = bitswap<8>(data,7,0,1,2,3,4,5,6);
@@ -214,7 +215,7 @@ WRITE8_MEMBER(vcc_state::ppi_porta_w)
 
 	// d0-d5: TSI C0-C5
 	// d7: TSI START line
-	m_speech->data_w(space, 0, data & 0x3f);
+	m_speech->data_w(data & 0x3f);
 	m_speech->start_w(data >> 7 & 1);
 
 	// d6: language latch data
@@ -226,13 +227,13 @@ WRITE8_MEMBER(vcc_state::ppi_porta_w)
 	}
 }
 
-READ8_MEMBER(vcc_state::ppi_portb_r)
+u8 vcc_state::ppi_portb_r()
 {
 	// d7: TSI BUSY line
 	return (m_speech->busy_r()) ? 0x80 : 0x00;
 }
 
-WRITE8_MEMBER(vcc_state::ppi_portb_w)
+void vcc_state::ppi_portb_w(u8 data)
 {
 	// d0,d2-d5: digit/led select
 	// _d6: enable language switches
@@ -240,7 +241,7 @@ WRITE8_MEMBER(vcc_state::ppi_portb_w)
 	update_display();
 }
 
-READ8_MEMBER(vcc_state::ppi_portc_r)
+u8 vcc_state::ppi_portc_r()
 {
 	u8 data = 0;
 
@@ -257,7 +258,7 @@ READ8_MEMBER(vcc_state::ppi_portc_r)
 	return ~data & 0xf;
 }
 
-WRITE8_MEMBER(vcc_state::ppi_portc_w)
+void vcc_state::ppi_portc_w(u8 data)
 {
 	// d4-d7: input mux (inverted)
 	m_inp_mux = ~data >> 4 & 0xf;
@@ -314,13 +315,13 @@ static INPUT_PORTS_START( vcc )
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("H8") PORT_CODE(KEYCODE_8) PORT_CODE(KEYCODE_8_PAD) PORT_CODE(KEYCODE_H)
 
 	PORT_START("RESET") // is not on matrix IN.0 d0
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("RE") PORT_CODE(KEYCODE_R) PORT_CHANGED_MEMBER(DEVICE_SELF, vcc_state, reset_button, nullptr)
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_NAME("RE") PORT_CODE(KEYCODE_R) PORT_CHANGED_MEMBER(DEVICE_SELF, vcc_state, reset_button, 0)
 INPUT_PORTS_END
 
 
 
 /******************************************************************************
-    Machine Drivers
+    Machine Configs
 ******************************************************************************/
 
 void vcc_state::vcc(machine_config &config)

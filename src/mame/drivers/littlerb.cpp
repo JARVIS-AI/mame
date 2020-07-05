@@ -133,8 +133,8 @@ private:
 	uint16_t m_sound_pointer_l,m_sound_pointer_r;
 	int m_soundframe;
 
-	DECLARE_WRITE16_MEMBER(littlerb_l_sound_w);
-	DECLARE_WRITE16_MEMBER(littlerb_r_sound_w);
+	void littlerb_l_sound_w(uint16_t data);
+	void littlerb_r_sound_w(uint16_t data);
 	uint8_t sound_data_shift();
 
 	TIMER_DEVICE_CALLBACK_MEMBER(littlerb_sound_step_cb);
@@ -151,14 +151,14 @@ uint8_t littlerb_state::sound_data_shift()
 }
 
 /* l is SFX, r is BGM (they doesn't seem to share the same data ROM) */
-WRITE16_MEMBER(littlerb_state::littlerb_l_sound_w)
+void littlerb_state::littlerb_l_sound_w(uint16_t data)
 {
 	m_sound_index_l = (data >> sound_data_shift()) & 0xff;
 	m_sound_pointer_l = 0;
 	//popmessage("%04x %04x",m_sound_index_l,m_sound_index_r);
 }
 
-WRITE16_MEMBER(littlerb_state::littlerb_r_sound_w)
+void littlerb_state::littlerb_r_sound_w(uint16_t data)
 {
 	m_sound_index_r = (data >> sound_data_shift()) & 0xff;
 	m_sound_pointer_r = 0;
@@ -255,7 +255,7 @@ static INPUT_PORTS_START( littlerb )
 	PORT_DIPNAME( 0x1000, 0x1000, "???"  )
 	PORT_DIPSETTING(      0x1000, DEF_STR( Off ) )
 	PORT_DIPSETTING(      0x0000, DEF_STR( On ) )
-	PORT_BIT( 0xe000, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, littlerb_state,littlerb_frame_step_r, nullptr)
+	PORT_BIT( 0xe000, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(littlerb_state, littlerb_frame_step_r)
 
 	PORT_START("P2")    /* 16bit */
 	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_JOYSTICK_UP ) PORT_8WAY PORT_PLAYER(2)

@@ -17,6 +17,7 @@
 #include "video/bufsprite.h"
 #include "emupal.h"
 #include "screen.h"
+#include "tilemap.h"
 
 struct M92_pf_layer_info
 {
@@ -71,7 +72,7 @@ public:
 
 	void init_bank();
 
-	DECLARE_CUSTOM_INPUT_MEMBER(m92_sprite_busy_r);
+	DECLARE_READ_LINE_MEMBER(sprite_busy_r);
 
 private:
 	required_device<buffered_spriteram16_device> m_spriteram;
@@ -98,19 +99,19 @@ private:
 	uint8_t m_palette_bank;
 	std::vector<uint16_t> m_paletteram;
 
-	DECLARE_READ16_MEMBER(eeprom_r);
-	DECLARE_WRITE16_MEMBER(eeprom_w);
-	DECLARE_WRITE8_MEMBER(coincounter_w);
-	DECLARE_WRITE8_MEMBER(bankswitch_w);
-	DECLARE_WRITE16_MEMBER(sound_reset_w);
-	DECLARE_WRITE16_MEMBER(spritecontrol_w);
-	DECLARE_WRITE16_MEMBER(videocontrol_w);
-	DECLARE_READ16_MEMBER(paletteram_r);
-	DECLARE_WRITE16_MEMBER(paletteram_w);
-	DECLARE_WRITE16_MEMBER(vram_w);
-	template<int Layer> DECLARE_WRITE16_MEMBER(pf_control_w);
-	DECLARE_WRITE16_MEMBER(master_control_w);
-	DECLARE_WRITE16_MEMBER(oki_bank_w);
+	uint16_t eeprom_r(offs_t offset);
+	void eeprom_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void coincounter_w(uint8_t data);
+	void bankswitch_w(uint8_t data);
+	void sound_reset_w(uint16_t data);
+	void spritecontrol_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void videocontrol_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	uint16_t paletteram_r(offs_t offset);
+	void paletteram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void vram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	template<int Layer> void pf_control_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void master_control_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void oki_bank_w(uint16_t data);
 	TILE_GET_INFO_MEMBER(get_pf_tile_info);
 	DECLARE_MACHINE_RESET(m92);
 	DECLARE_VIDEO_START(m92);

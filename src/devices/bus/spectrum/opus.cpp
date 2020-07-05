@@ -162,9 +162,9 @@ READ_LINE_MEMBER(spectrum_opus_device::romcs)
 	return m_romcs | m_exp->romcs();
 }
 
-void spectrum_opus_device::opcode_fetch(offs_t offset)
+void spectrum_opus_device::pre_opcode_fetch(offs_t offset)
 {
-	m_exp->opcode_fetch(offset);
+	m_exp->pre_opcode_fetch(offset);
 
 	if (!machine().side_effects_disabled())
 	{
@@ -255,7 +255,7 @@ void spectrum_opus_device::mreq_w(offs_t offset, uint8_t data)
 		m_exp->mreq_w(offset, data);
 }
 
-WRITE8_MEMBER(spectrum_opus_device::pia_out_a)
+void spectrum_opus_device::pia_out_a(uint8_t data)
 {
 	floppy_image_device *floppy = nullptr;
 
@@ -272,7 +272,7 @@ WRITE8_MEMBER(spectrum_opus_device::pia_out_a)
 	m_fdc->dden_w(BIT(data, 5));
 }
 
-WRITE8_MEMBER(spectrum_opus_device::pia_out_b)
+void spectrum_opus_device::pia_out_b(uint8_t data)
 {
 	m_centronics->write_data1(BIT(data, 1));
 	m_centronics->write_data2(BIT(data, 2));

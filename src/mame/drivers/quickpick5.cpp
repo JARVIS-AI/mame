@@ -33,6 +33,7 @@
 #include "emupal.h"
 #include "screen.h"
 #include "speaker.h"
+#include "tilemap.h"
 
 class quickpick5_state : public driver_device
 {
@@ -56,21 +57,21 @@ private:
 
 	K05324X_CB_MEMBER(sprite_callback);
 	TILE_GET_INFO_MEMBER(ttl_get_tile_info);
-	DECLARE_WRITE8_MEMBER(ccu_int_time_w);
+	void ccu_int_time_w(uint8_t data);
 	TIMER_DEVICE_CALLBACK_MEMBER(scanline);
 
-	READ8_MEMBER(control_r) { return m_control; }
+	uint8_t control_r() { return m_control; }
 
 	WRITE_LINE_MEMBER(vbl_ack_w) { m_maincpu->set_input_line(0, CLEAR_LINE); }
 	WRITE_LINE_MEMBER(nmi_ack_w) { m_maincpu->set_input_line(INPUT_LINE_NMI, CLEAR_LINE); }
 
 	// A0 is inverted to match the Z80's endianness.  Typical Konami.
-	READ8_MEMBER(k244_r) { return m_k053245->k053244_r(offset^1);  }
-	WRITE8_MEMBER(k244_w) { m_k053245->k053244_w(offset^1, data); }
-	READ8_MEMBER(k245_r) { return m_k053245->k053245_r(offset^1);  }
-	WRITE8_MEMBER(k245_w) { m_k053245->k053245_w(offset^1, data); }
+	uint8_t k244_r(offs_t offset) { return m_k053245->k053244_r(offset^1);  }
+	void k244_w(offs_t offset, uint8_t data) { m_k053245->k053244_w(offset^1, data); }
+	uint8_t k245_r(offs_t offset) { return m_k053245->k053245_r(offset^1);  }
+	void k245_w(offs_t offset, uint8_t data) { m_k053245->k053245_w(offset^1, data); }
 
-	WRITE8_MEMBER(control_w)
+	void control_w(uint8_t data)
 	{
 		membank("bank1")->set_entry(data&0x1);
 		if (((m_control & 0x60) != 0x60) && ((data & 0x60) == 0x60))
@@ -80,8 +81,8 @@ private:
 		m_control = data;
 	}
 
-	DECLARE_READ8_MEMBER(vram_r);
-	DECLARE_WRITE8_MEMBER(vram_w);
+	uint8_t vram_r(offs_t offset);
+	void vram_w(offs_t offset, uint8_t data);
 
 	void quickpick5_main(address_map &map);
 
@@ -106,13 +107,13 @@ private:
 	int         m_ccu_int_time, m_ccu_int_time_count;
 };
 
-WRITE8_MEMBER(quickpick5_state::ccu_int_time_w)
+void quickpick5_state::ccu_int_time_w(uint8_t data)
 {
 	logerror("ccu_int_time rewritten with value of %02x\n", data);
 	m_ccu_int_time = data;
 }
 
-READ8_MEMBER(quickpick5_state::vram_r)
+uint8_t quickpick5_state::vram_r(offs_t offset)
 {
 	if ((m_control & 0x10) == 0x10)
 	{
@@ -136,7 +137,7 @@ READ8_MEMBER(quickpick5_state::vram_r)
 	return m_vram[offset];
 }
 
-WRITE8_MEMBER(quickpick5_state::vram_w)
+void quickpick5_state::vram_w(offs_t offset, uint8_t data)
 {
 	if ((m_control & 0x10) == 0x10)
 	{
@@ -196,7 +197,7 @@ void quickpick5_state::video_start()
 	m_gfxdecode->set_gfx(gfx_index, std::make_unique<gfx_element>(m_palette, charlayout, memregion("ttl")->base(), 0, m_palette->entries() / 16, 0));
 	m_ttl_gfx_index = gfx_index;
 
-	m_ttl_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(quickpick5_state::ttl_get_tile_info),this), TILEMAP_SCAN_ROWS, 8, 8, 64, 32);
+	m_ttl_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(quickpick5_state::ttl_get_tile_info)), TILEMAP_SCAN_ROWS, 8, 8, 64, 32);
 	m_ttl_tilemap->set_transparent_pen(0);
 	m_ttl_tilemap->set_scrollx(80);
 	m_ttl_tilemap->set_scrolly(28);
@@ -216,7 +217,7 @@ TILE_GET_INFO_MEMBER(quickpick5_state::ttl_get_tile_info)
 	attr >>= 3;
 	attr &= ~1;
 
-	SET_TILE_INFO_MEMBER(m_ttl_gfx_index, code, attr, 0);
+	tileinfo.set(m_ttl_gfx_index, code, attr, 0);
 }
 
 uint32_t quickpick5_state::screen_update_quickpick5(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
@@ -427,7 +428,7 @@ void quickpick5_state::quickpick5(machine_config &config)
 	K053245(config, m_k053245, 0);
 	m_k053245->set_palette(m_palette);
 	m_k053245->set_offsets(-(44+80), 20);
-	m_k053245->set_sprite_callback(FUNC(quickpick5_state::sprite_callback), this);
+	m_k053245->set_sprite_callback(FUNC(quickpick5_state::sprite_callback));
 
 	GFXDECODE(config, m_gfxdecode, m_palette, gfxdecode_device::empty);
 

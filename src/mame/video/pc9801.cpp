@@ -244,7 +244,7 @@ UPD7220_DRAW_TEXT_LINE_MEMBER( pc9801_state::hgdc_draw_text )
  *
  ************************************************/
 
-WRITE8_MEMBER(pc9801_state::pc9801_video_ff_w)
+void pc9801_state::pc9801_video_ff_w(uint8_t data)
 {
 	/*
 	TODO: this is my best bet so far. Register 4 is annoying, the pattern seems to be:
@@ -289,7 +289,7 @@ WRITE8_MEMBER(pc9801_state::pc9801_video_ff_w)
 	}
 }
 
-READ8_MEMBER(pc9801_state::txt_scrl_r)
+uint8_t pc9801_state::txt_scrl_r(offs_t offset)
 {
 	//logerror("Read to display register [%02x]\n",offset+0x70);
 	/* TODO: ok? */
@@ -298,7 +298,7 @@ READ8_MEMBER(pc9801_state::txt_scrl_r)
 	return 0xff;
 }
 
-WRITE8_MEMBER(pc9801_state::txt_scrl_w)
+void pc9801_state::txt_scrl_w(offs_t offset, uint8_t data)
 {
 	//logerror("Write to display register [%02x] %02x\n",offset+0x70,data);
 	if(offset <= 5)
@@ -313,7 +313,7 @@ WRITE8_MEMBER(pc9801_state::txt_scrl_w)
  *
  ************************************************/
 
-READ8_MEMBER(pc9801_state::pc9801_a0_r)
+uint8_t pc9801_state::pc9801_a0_r(offs_t offset)
 {
 	if((offset & 1) == 0)
 	{
@@ -358,7 +358,7 @@ READ8_MEMBER(pc9801_state::pc9801_a0_r)
 	}
 }
 
-WRITE8_MEMBER(pc9801_state::pc9801_a0_w)
+void pc9801_state::pc9801_a0_w(offs_t offset, uint8_t data)
 {
 	if((offset & 1) == 0)
 	{
@@ -441,22 +441,27 @@ WRITE8_MEMBER(pc9801_state::pc9801_a0_w)
  ************************************************/
 
 /* TODO: banking? */
-READ16_MEMBER(pc9801_state::tvram_r)
+uint16_t pc9801_state::tvram_r(offs_t offset, uint16_t mem_mask)
 {
 	uint16_t res;
 
 	if((offset & 0x1000) && (mem_mask == 0xff00))
 		return 0xffff;
 
-	res = m_tvram[offset];
+	if(offset < (0x3fe2>>1))
+		res = m_tvram[offset];
+	else
+		res = m_memsw->read(offset & 0xf);
 
 	return res;
 }
 
-WRITE16_MEMBER(pc9801_state::tvram_w)
+void pc9801_state::tvram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
-	if(offset < (0x3fe2>>1) || m_video_ff[MEMSW_REG])
+	if(offset < (0x3fe2>>1))
 		COMBINE_DATA(&m_tvram[offset]);
+	else if(m_video_ff[MEMSW_REG] && ACCESSING_BITS_0_7)
+		m_memsw->write(offset & 0x0f, data & 0xff);
 
 	COMBINE_DATA(&m_video_ram_1[offset]); //TODO: check me
 }
@@ -468,12 +473,12 @@ WRITE16_MEMBER(pc9801_state::tvram_w)
  ************************************************/
 
 /* +0x8000 is trusted (bank 0 is actually used by 16 colors mode) */
-READ8_MEMBER(pc9801_state::gvram_r)
+uint8_t pc9801_state::gvram_r(offs_t offset)
 {
 	return bitswap<8>(m_video_ram_2[(offset>>1)+0x04000+m_vram_bank*0x10000] >> ((offset & 1) << 3),0,1,2,3,4,5,6,7);
 }
 
-WRITE8_MEMBER(pc9801_state::gvram_w)
+void pc9801_state::gvram_w(offs_t offset, uint8_t data)
 {
 	uint16_t ram = m_video_ram_2[(offset>>1)+0x04000+m_vram_bank*0x10000];
 	int mask = (offset & 1) << 3;
@@ -487,7 +492,7 @@ WRITE8_MEMBER(pc9801_state::gvram_w)
  *
  ************************************************/
 
-READ16_MEMBER(pc9801_state::upd7220_grcg_r)
+uint16_t pc9801_state::upd7220_grcg_r(offs_t offset, uint16_t mem_mask)
 {
 	uint16_t res = 0;
 
@@ -515,7 +520,7 @@ READ16_MEMBER(pc9801_state::upd7220_grcg_r)
 	return res;
 }
 
-WRITE16_MEMBER(pc9801_state::upd7220_grcg_w)
+void pc9801_state::upd7220_grcg_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if(!(m_grcg.mode & 0x80))
 		COMBINE_DATA(&m_video_ram_2[offset]);

@@ -114,15 +114,15 @@ private:
 	u16 m_lastb2;
 	int m_destl;
 
-	DECLARE_WRITE16_MEMBER(input_select_w);
-	DECLARE_READ16_MEMBER(inputs_r);
-	DECLARE_WRITE16_MEMBER(video_regs_w);
-	DECLARE_READ16_MEMBER(video_regs_r);
-	DECLARE_WRITE16_MEMBER(dma_w);
-	DECLARE_READ16_MEMBER(tileram_r);
-	DECLARE_WRITE16_MEMBER(tileram_w);
-	DECLARE_WRITE16_MEMBER(paletteram_w);
-	DECLARE_READ16_MEMBER(irq_ack_r);
+	void input_select_w(u16 data);
+	u16 inputs_r();
+	void video_regs_w(offs_t offset, u16 data, u16 mem_mask = ~0);
+	u16 video_regs_r(offs_t offset);
+	void dma_w(offs_t offset, u16 data, u16 mem_mask = ~0);
+	u16 tileram_r(offs_t offset);
+	void tileram_w(offs_t offset, u16 data, u16 mem_mask = ~0);
+	void paletteram_w(offs_t offset, u16 data, u16 mem_mask = ~0);
+	u16 irq_ack_r();
 	virtual void machine_start() override;
 	virtual void video_start() override;
 	u32 screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
@@ -334,12 +334,12 @@ void srmp6_state::machine_start()
 	save_item(NAME(m_input_select));
 }
 
-WRITE16_MEMBER(srmp6_state::input_select_w)
+void srmp6_state::input_select_w(u16 data)
 {
 	m_input_select = data & 0x0f;
 }
 
-READ16_MEMBER(srmp6_state::inputs_r)
+u16 srmp6_state::inputs_r()
 {
 	switch (m_input_select) // inputs
 	{
@@ -353,7 +353,7 @@ READ16_MEMBER(srmp6_state::inputs_r)
 }
 
 
-WRITE16_MEMBER(srmp6_state::video_regs_w)
+void srmp6_state::video_regs_w(offs_t offset, u16 data, u16 mem_mask)
 {
 	switch (offset)
 	{
@@ -365,7 +365,7 @@ WRITE16_MEMBER(srmp6_state::video_regs_w)
 		}
 
 		// set by IT4
-		case 0x5c/2: // either 0x40 explicitely in many places, or according $2083b0 (IT4)
+		case 0x5c/2: // either 0x40 explicitly in many places, or according $2083b0 (IT4)
 			//Fade in/out (0x40(dark)-0x60(normal)-0x7e?(bright) reset by 0x00?
 			if (m_brightness != data)
 			{
@@ -391,7 +391,7 @@ WRITE16_MEMBER(srmp6_state::video_regs_w)
 	COMBINE_DATA(&m_video_regs[offset]);
 }
 
-READ16_MEMBER(srmp6_state::video_regs_r)
+u16 srmp6_state::video_regs_r(offs_t offset)
 {
 	logerror("video_regs_r (PC=%06X): %04x\n", m_maincpu->pcbase(), offset*2);
 	return m_video_regs[offset];
@@ -433,7 +433,7 @@ u32 srmp6_state::process(u8 b,u32 dst_offset)
 }
 
 
-WRITE16_MEMBER(srmp6_state::dma_w)
+void srmp6_state::dma_w(offs_t offset, u16 data, u16 mem_mask)
 {
 	u16* dmaram = m_dmaram;
 
@@ -503,12 +503,12 @@ WRITE16_MEMBER(srmp6_state::dma_w)
 }
 
 /* if tileram is actually bigger than the mapped area, how do we access the rest? */
-READ16_MEMBER(srmp6_state::tileram_r)
+u16 srmp6_state::tileram_r(offs_t offset)
 {
 	return m_chrram[offset];
 }
 
-WRITE16_MEMBER(srmp6_state::tileram_w)
+void srmp6_state::tileram_w(offs_t offset, u16 data, u16 mem_mask)
 {
 	//u16 tmp;
 	COMBINE_DATA(&m_chrram[offset]);
@@ -517,11 +517,11 @@ WRITE16_MEMBER(srmp6_state::tileram_w)
 	if (offset >= 0xfff00/2 && offset <= 0xfff1a/2 )
 	{
 		offset &=0x1f;
-		dma_w(space,offset,data,mem_mask);
+		dma_w(offset,data,mem_mask);
 	}
 }
 
-WRITE16_MEMBER(srmp6_state::paletteram_w)
+void srmp6_state::paletteram_w(offs_t offset, u16 data, u16 mem_mask)
 {
 	int brg = m_brightness & 0x7f;
 
@@ -541,7 +541,7 @@ WRITE16_MEMBER(srmp6_state::paletteram_w)
 	}
 }
 
-READ16_MEMBER(srmp6_state::irq_ack_r)
+u16 srmp6_state::irq_ack_r()
 {
 	m_maincpu->set_input_line(4, CLEAR_LINE);
 	return 0; // value read doesn't matter
@@ -565,17 +565,17 @@ void srmp6_state::srmp6_map(address_map &map)
 	map(0x4d0000, 0x4d0001).r(FUNC(srmp6_state::irq_ack_r));
 	map(0x4e0000, 0x4e00ff).rw("nile", FUNC(nile_device::nile_snd_r), FUNC(nile_device::nile_snd_w));
 	map(0x4e0100, 0x4e0101).rw("nile", FUNC(nile_device::nile_sndctrl_r), FUNC(nile_device::nile_sndctrl_w));
-	//AM_RANGE(0x4e0110, 0x4e0111) AM_NOP // ? accessed once ($268dc, written $b.w)
+	//map(0x4e0110, 0x4e0111).noprw(); // ? accessed once ($268dc, written $b.w)
 
 	// CHR RAM: checked [$500000-$5fffff]
 	map(0x500000, 0x5fffff).rw(FUNC(srmp6_state::tileram_r), FUNC(srmp6_state::tileram_w)).share("chrram");
-	//AM_RANGE(0x5fff00, 0x5fff1f) AM_RAM // ? see routine $5ca8, video_regs related ???
-	//AM_RANGE(0x5fff00, 0x5fffff) AM_WRITE(dma_w) AM_SHARE("dmaram")
+	//map(0x5fff00, 0x5fff1f).ram(); // ? see routine $5ca8, video_regs related ???
+	//map(0x5fff00, 0x5fffff).w(FUNC(srmp6_state::dma_w)).share("dmaram");
 
 	map(0x600000, 0x7fffff).bankr("nile_bank");    // banked ROM (used by ROM check)
 	map(0x800000, 0x9fffff).rom().region("user1", 0);
-	//AM_RANGE(0xf00004, 0xf00005) AM_RAM // ?
-	//AM_RANGE(0xf00006, 0xf00007) AM_RAM // ?
+	//map(0xf00004, 0xf00005).ram(); // ?
+	//map(0xf00006, 0xf00007).ram(); // ?
 
 }
 
@@ -714,8 +714,8 @@ ROM_START( srmp6 )
 	ROM_LOAD16_BYTE( "sx011-10.4", 0x000001, 0x080000, CRC(8f4318a5) SHA1(44160968cca027b3d42805f2dd42662d11257ef6) )
 	ROM_LOAD16_BYTE( "sx011-11.5", 0x000000, 0x080000, CRC(7503d9cf) SHA1(03ab35f13b6166cb362aceeda18e6eda8d3abf50) )
 
-	ROM_REGION( 0x200000, "user1", 0 ) /* 68000 Data */
-	ROM_LOAD( "sx011-09.10", 0x000000, 0x200000, CRC(58f74438) SHA1(a256e39ca0406e513ab4dbd812fb0b559b4f61f2) )
+	ROM_REGION16_BE( 0x200000, "user1", 0 ) /* 68000 Data */
+	ROM_LOAD16_WORD_SWAP( "sx011-09.10", 0x000000, 0x200000, CRC(58f74438) SHA1(a256e39ca0406e513ab4dbd812fb0b559b4f61f2) )
 
 	/* these are accessed directly by the 68k, DMA device etc.  NOT decoded */
 	ROM_REGION( 0x2000000, "nile", 0)   /* Banked ROM */

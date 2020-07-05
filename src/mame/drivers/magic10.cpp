@@ -127,6 +127,7 @@ Both setups show different variants for components layout, memory size, NVRAM, e
 #include "emupal.h"
 #include "screen.h"
 #include "speaker.h"
+#include "tilemap.h"
 
 #include "sgsafari.lh"
 #include "musicsrt.lh"
@@ -171,13 +172,13 @@ protected:
 	virtual void video_start() override;
 
 private:
-	DECLARE_WRITE16_MEMBER(layer0_videoram_w);
-	DECLARE_WRITE16_MEMBER(layer1_videoram_w);
-	DECLARE_WRITE16_MEMBER(layer2_videoram_w);
-	DECLARE_READ16_MEMBER(magic102_r);
-	DECLARE_READ16_MEMBER(hotslot_copro_r);
-	DECLARE_WRITE16_MEMBER(hotslot_copro_w);
-	DECLARE_WRITE16_MEMBER(magic10_out_w);
+	void layer0_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void layer1_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void layer2_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	uint16_t magic102_r();
+	uint16_t hotslot_copro_r();
+	void hotslot_copro_w(uint16_t data);
+	void magic10_out_w(uint16_t data);
 	TILE_GET_INFO_MEMBER(get_layer0_tile_info);
 	TILE_GET_INFO_MEMBER(get_layer1_tile_info);
 	TILE_GET_INFO_MEMBER(get_layer2_tile_info);
@@ -208,19 +209,19 @@ private:
 *      Video Hardware      *
 ***************************/
 
-WRITE16_MEMBER(magic10_state::layer0_videoram_w)
+void magic10_state::layer0_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_layer0_videoram[offset]);
 	m_layer0_tilemap->mark_tile_dirty(offset >> 1);
 }
 
-WRITE16_MEMBER(magic10_state::layer1_videoram_w)
+void magic10_state::layer1_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_layer1_videoram[offset]);
 	m_layer1_tilemap->mark_tile_dirty(offset >> 1);
 }
 
-WRITE16_MEMBER(magic10_state::layer2_videoram_w)
+void magic10_state::layer2_videoram_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_layer2_videoram[offset]);
 	m_layer2_tilemap->mark_tile_dirty(offset >> 1);
@@ -228,7 +229,7 @@ WRITE16_MEMBER(magic10_state::layer2_videoram_w)
 
 TILE_GET_INFO_MEMBER(magic10_state::get_layer0_tile_info)
 {
-	SET_TILE_INFO_MEMBER(1,
+	tileinfo.set(1,
 		m_layer0_videoram[tile_index * 2],
 		m_layer0_videoram[tile_index * 2 + 1] & 0x0f,
 		TILE_FLIPYX((m_layer0_videoram[tile_index * 2 + 1] & 0xc0) >> 6));
@@ -236,7 +237,7 @@ TILE_GET_INFO_MEMBER(magic10_state::get_layer0_tile_info)
 
 TILE_GET_INFO_MEMBER(magic10_state::get_layer1_tile_info)
 {
-	SET_TILE_INFO_MEMBER(1,
+	tileinfo.set(1,
 		m_layer1_videoram[tile_index * 2],
 		m_layer1_videoram[tile_index * 2 + 1] & 0x0f,
 		TILE_FLIPYX((m_layer1_videoram[tile_index * 2 + 1] & 0xc0) >> 6));
@@ -244,7 +245,7 @@ TILE_GET_INFO_MEMBER(magic10_state::get_layer1_tile_info)
 
 TILE_GET_INFO_MEMBER(magic10_state::get_layer2_tile_info)
 {
-	SET_TILE_INFO_MEMBER(0,
+	tileinfo.set(0,
 		m_layer2_videoram[tile_index * 2],
 		m_layer2_videoram[tile_index * 2 + 1] & 0x0f,0);
 }
@@ -252,9 +253,9 @@ TILE_GET_INFO_MEMBER(magic10_state::get_layer2_tile_info)
 
 void magic10_state::video_start()
 {
-	m_layer0_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(magic10_state::get_layer0_tile_info),this), TILEMAP_SCAN_ROWS, 16, 16, 32, 32);
-	m_layer1_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(magic10_state::get_layer1_tile_info),this), TILEMAP_SCAN_ROWS, 16, 16, 32, 32);
-	m_layer2_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(magic10_state::get_layer2_tile_info),this), TILEMAP_SCAN_ROWS, 8, 8, 64, 64);
+	m_layer0_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(magic10_state::get_layer0_tile_info)), TILEMAP_SCAN_ROWS, 16, 16, 32, 32);
+	m_layer1_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(magic10_state::get_layer1_tile_info)), TILEMAP_SCAN_ROWS, 16, 16, 32, 32);
+	m_layer2_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(magic10_state::get_layer2_tile_info)), TILEMAP_SCAN_ROWS, 8, 8, 64, 64);
 
 	m_layer1_tilemap->set_transparent_pen(0);
 	m_layer2_tilemap->set_transparent_pen(0);
@@ -285,23 +286,23 @@ uint32_t magic10_state::screen_update_magic10(screen_device &screen, bitmap_ind1
 *       R/W Handlers       *
 ***************************/
 
-READ16_MEMBER(magic10_state::magic102_r)
+uint16_t magic10_state::magic102_r()
 {
 	m_magic102_ret ^= 0x20;
 	return m_magic102_ret;
 }
 
-READ16_MEMBER(magic10_state::hotslot_copro_r)
+uint16_t magic10_state::hotslot_copro_r()
 {
 	return 0x80;
 }
 
-WRITE16_MEMBER(magic10_state::hotslot_copro_w)
+void magic10_state::hotslot_copro_w(uint16_t data)
 {
 	logerror("Writing to copro: %d \n", data);
 }
 
-WRITE16_MEMBER(magic10_state::magic10_out_w)
+void magic10_state::magic10_out_w(uint16_t data)
 {
 /*
   ----------------------------------------------
@@ -404,8 +405,8 @@ void magic10_state::magic102_map(address_map &map)
 	map(0x500006, 0x500007).nopr(); // gives credits
 	map(0x50001a, 0x50001b).portr("IN0");
 	map(0x50001c, 0x50001d).portr("IN1");
-//  AM_RANGE(0x500002, 0x50001f) AM_READNOP
-//  AM_RANGE(0x500002, 0x50001f) AM_WRITENOP
+//  map(0x500002, 0x50001f).nopr();
+//  map(0x500002, 0x50001f).nopw();
 	map(0x600000, 0x603fff).ram();
 	map(0x700001, 0x700001).rw("oki", FUNC(okim6295_device::read), FUNC(okim6295_device::write));
 	map(0x700080, 0x700087).ram().share("vregs");   // video registers?

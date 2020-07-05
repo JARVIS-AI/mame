@@ -47,12 +47,12 @@ protected:
 private:
 	LC8670_LCD_UPDATE(svmu_lcd_update);
 	void svmu_palette(palette_device &palette) const;
-	DECLARE_WRITE8_MEMBER(page_w);
-	DECLARE_READ8_MEMBER(prog_r);
-	DECLARE_WRITE8_MEMBER(prog_w);
-	DECLARE_READ8_MEMBER(p1_r);
-	DECLARE_WRITE8_MEMBER(p1_w);
-	DECLARE_READ8_MEMBER(p7_r);
+	void page_w(uint8_t data);
+	uint8_t prog_r(offs_t offset);
+	void prog_w(offs_t offset, uint8_t data);
+	uint8_t p1_r();
+	void p1_w(uint8_t data);
+	uint8_t p7_r();
 	DECLARE_QUICKLOAD_LOAD_MEMBER(quickload_cb);
 
 	void svmu_io_mem(address_map &map);
@@ -67,12 +67,12 @@ private:
 };
 
 
-WRITE8_MEMBER(svmu_state::page_w)
+void svmu_state::page_w(uint8_t data)
 {
 	m_page = data & 0x03;
 }
 
-READ8_MEMBER(svmu_state::prog_r)
+uint8_t svmu_state::prog_r(offs_t offset)
 {
 	if (m_page == 1)
 		return m_flash->read(offset);
@@ -82,7 +82,7 @@ READ8_MEMBER(svmu_state::prog_r)
 		return m_bios[offset];
 }
 
-WRITE8_MEMBER(svmu_state::prog_w)
+void svmu_state::prog_w(offs_t offset, uint8_t data)
 {
 	if (m_page == 1)
 		m_flash->write(offset, data);
@@ -104,12 +104,12 @@ WRITE8_MEMBER(svmu_state::prog_w)
 
 */
 
-READ8_MEMBER(svmu_state::p1_r)
+uint8_t svmu_state::p1_r()
 {
 	return 0;
 }
 
-WRITE8_MEMBER(svmu_state::p1_w)
+void svmu_state::p1_w(uint8_t data)
 {
 	m_speaker->level_w(BIT(data, 7));
 }
@@ -124,7 +124,7 @@ WRITE8_MEMBER(svmu_state::p1_w)
     ---- ---x   5V detection
 */
 
-READ8_MEMBER(svmu_state::p7_r)
+uint8_t svmu_state::p7_r()
 {
 	return (ioport("BATTERY")->read()<<1);
 }
@@ -342,7 +342,7 @@ void svmu_state::svmu(machine_config &config)
 	ATMEL_29C010(config, m_flash);
 
 	quickload_image_device &quickload(QUICKLOAD(config, "quickload", "vms,bin"));
-	quickload.set_load_callback(FUNC(svmu_state::quickload_cb), this);
+	quickload.set_load_callback(FUNC(svmu_state::quickload_cb));
 	quickload.set_interface("svmu_quik");
 
 	/* Software lists */
@@ -381,9 +381,9 @@ ROM_START( svmu )
 	ROM_SYSTEM_BIOS(5, "jp1005a", "VMS Japanese BIOS (1.005 1998/12/09)")
 	ROMX_LOAD("jp1005-19981209-315-6124-05.bin", 0x0000, 0x10000, CRC(47623324) SHA1(fca1aceff8a2f8c6826f3a865f4d5ef88dfd9ed1), ROM_BIOS(5))
 
-	// Version 1.005,1999/10/26,315-6028-04,SEGA Visual Memory System BIOS Produced by Sue
+	// Version 1.005,1999/10/26,315-6208-04,SEGA Visual Memory System BIOS Produced by Sue
 	ROM_SYSTEM_BIOS(6, "jp1005b", "VMS Japanese BIOS (1.005 1999/10/26)")
-	ROMX_LOAD("jp1005-19991026-315-6028-04.bin", 0x0000, 0x10000, CRC(6cab02c2) SHA1(6cc2fbf4a67770988922117c300d006aa20899ac), ROM_BIOS(6)) // extracted with trojan
+	ROMX_LOAD("jp1005-19991026-315-6208-04.bin", 0x0000, 0x10000, CRC(6cab02c2) SHA1(6cc2fbf4a67770988922117c300d006aa20899ac), ROM_BIOS(6)) // extracted with trojan
 
 	// Version 1.004,1998/09/30,315-6208-01,SEGA Visual Memory System BIOS Produced by Sue
 	ROM_SYSTEM_BIOS(7, "dev1004", "VMS Japanese Development BIOS (1.004 1998/09/30)") // automatically boot the first game found in the flash

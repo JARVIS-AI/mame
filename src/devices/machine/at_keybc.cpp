@@ -12,6 +12,13 @@
     are no longer implemented, the pin assignments are different, and
     interrupt outputs are latched externally using a 74ALS74 at ZM87.
 
+    Many of the ICs that provide functional compatibility with the AT
+    and/or PS/2 "8042" keyboard controllers do not incorporate actual
+    UPI-41 microcontroller cores. This even applies to some directly
+    equivalent 40-pin DIPs such as the JETkey "Keyboard BIOS" V3.0
+    and V5.0, which were found to be Samsung Electronics ASICs when
+    decapped.
+
     PC/AT I/O pin assignments:
     P10:    NC              no connection
     P11:    NC              no connection
@@ -140,14 +147,14 @@ DEFINE_DEVICE_TYPE(PS2_KEYBOARD_CONTROLLER, ps2_keyboard_controller_device, "ps2
 
 uint8_t at_kbc_device_base::data_r()
 {
-	u8 const data = m_mcu->upi41_master_r(machine().dummy_space(), 0U);
+	u8 const data = m_mcu->upi41_master_r(0U);
 	LOG("data_r 0x%02x (%s)\n", data, machine().describe_context());
 	return data;
 }
 
 uint8_t at_kbc_device_base::status_r()
 {
-	u8 const data = m_mcu->upi41_master_r(machine().dummy_space(), 1U);
+	u8 const data = m_mcu->upi41_master_r(1U);
 	LOGMASKED(LOG_STATUS, "status_r 0x%02x%s%s%s%s%s%s%s%s (%s)\n", data,
 		BIT(data, 7) ? " PER" : "", BIT(data, 6) ? " RTO" : "",
 		BIT(data, 5) ? " TTO" : "", BIT(data, 4) ? "" : " INH",
@@ -351,12 +358,12 @@ inline u8 at_kbc_device_base::kbd_data_r() const
 
 TIMER_CALLBACK_MEMBER(at_kbc_device_base::write_data)
 {
-	m_mcu->upi41_master_w(machine().dummy_space(), 0U, u8(u32(param)));
+	m_mcu->upi41_master_w(0U, u8(u32(param)));
 }
 
 TIMER_CALLBACK_MEMBER(at_kbc_device_base::write_command)
 {
-	m_mcu->upi41_master_w(machine().dummy_space(), 1U, u8(u32(param)));
+	m_mcu->upi41_master_w(1U, u8(u32(param)));
 }
 
 TIMER_CALLBACK_MEMBER(at_kbc_device_base::set_kbd_clk_in)
@@ -418,14 +425,14 @@ uint8_t ps2_keyboard_controller_device::data_r()
 {
 	set_kbd_irq(0U);
 	set_aux_irq(0U);
-	u8 const data = m_mcu->upi41_master_r(machine().dummy_space(), 0U);
+	u8 const data = m_mcu->upi41_master_r(0U);
 	LOG("data_r 0x%02x (%s)\n", data, machine().describe_context());
 	return data;
 }
 
 uint8_t ps2_keyboard_controller_device::status_r()
 {
-	u8 const data = m_mcu->upi41_master_r(machine().dummy_space(), 1U);
+	u8 const data = m_mcu->upi41_master_r(1U);
 	LOGMASKED(LOG_STATUS, "status_r 0x%02x%s%s%s%s%s%s%s%s (%s)\n", data,
 		BIT(data, 7) ? " PER" : "",     BIT(data, 6) ? " GTO" : "",
 		BIT(data, 5) ? " AUX_OBF" : "", BIT(data, 4) ? "" : " INH",

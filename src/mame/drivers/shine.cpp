@@ -50,10 +50,10 @@ public:
 	void shine(machine_config &config);
 
 private:
-	DECLARE_READ8_MEMBER(via0_pa_r);
-	DECLARE_WRITE8_MEMBER(via0_pb_w);
-	DECLARE_WRITE8_MEMBER(floppy_w);
-	DECLARE_READ8_MEMBER(vdg_videoram_r);
+	uint8_t via0_pa_r();
+	void via0_pb_w(uint8_t data);
+	void floppy_w(uint8_t data);
+	uint8_t vdg_videoram_r(offs_t offset);
 
 	required_device<cpu_device> m_maincpu;
 	required_device<mc6847_base_device> m_vdg;
@@ -80,8 +80,8 @@ void shine_state::shine_mem(address_map &map)
 	map.unmap_value_high();
 	map(0x0000, 0x67ff).ram();
 	map(0x6800, 0x7fff).ram().share(m_video_ram);
-	map(0x9400, 0x940f).rw(m_via[0], FUNC(via6522_device::read), FUNC(via6522_device::write));
-	map(0x9800, 0x980f).rw(m_via[1], FUNC(via6522_device::read), FUNC(via6522_device::write));
+	map(0x9400, 0x940f).m(m_via[0], FUNC(via6522_device::map));
+	map(0x9800, 0x980f).m(m_via[1], FUNC(via6522_device::map));
 	map(0x9c00, 0x9c03).rw(m_fdc, FUNC(fd1771_device::read), FUNC(fd1771_device::write));
 	map(0x9d00, 0x9d00).w(FUNC(shine_state::floppy_w));
 	map(0xb000, 0xffff).rom();
@@ -174,7 +174,7 @@ INPUT_PORTS_END
     DEVICE CONFIGURATION
 ***************************************************************************/
 
-READ8_MEMBER(shine_state::via0_pa_r)
+uint8_t shine_state::via0_pa_r()
 {
 	uint8_t data;
 
@@ -183,7 +183,7 @@ READ8_MEMBER(shine_state::via0_pa_r)
 	return data;
 }
 
-WRITE8_MEMBER(shine_state::via0_pb_w)
+void shine_state::via0_pb_w(uint8_t data)
 {
 	/* keyboard column */
 	m_keylatch = data & 0x07;
@@ -196,7 +196,7 @@ WRITE8_MEMBER(shine_state::via0_pb_w)
 }
 
 
-WRITE8_MEMBER(shine_state::floppy_w)
+void shine_state::floppy_w(uint8_t data)
 {
 	floppy_image_device *floppy = nullptr;
 
@@ -210,7 +210,7 @@ WRITE8_MEMBER(shine_state::floppy_w)
 }
 
 
-READ8_MEMBER(shine_state::vdg_videoram_r)
+uint8_t shine_state::vdg_videoram_r(offs_t offset)
 {
 	if (offset == ~0) return 0xff;
 

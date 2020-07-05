@@ -223,7 +223,7 @@ private:
 	std::unique_ptr<int32_t[]> m_zoom_table;
 	std::unique_ptr<uint16_t[]> m_blitter_data;
 
-	scroll_info *m_scanlines;
+	std::unique_ptr<scroll_info[]> m_scanlines;
 
 	int32_t m_direct_write_x0;
 	int32_t m_direct_write_x1;
@@ -248,13 +248,11 @@ private:
 		}
 		return 0;
 	}
-	DECLARE_WRITE16_MEMBER(wheelfir_scanline_cnt_w);
-	DECLARE_WRITE16_MEMBER(wheelfir_blit_w);
-	DECLARE_WRITE16_MEMBER(wheelfir_7c0000_w);
-	DECLARE_READ16_MEMBER(wheelfir_7c0000_r);
-	DECLARE_WRITE16_MEMBER(wheelfir_snd_w);
-	DECLARE_READ16_MEMBER(wheelfir_snd_r);
-	DECLARE_WRITE16_MEMBER(coin_cnt_w);
+	void wheelfir_scanline_cnt_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void wheelfir_blit_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void wheelfir_7c0000_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	uint16_t wheelfir_7c0000_r(offs_t offset, uint16_t mem_mask = ~0);
+	void coin_cnt_w(uint16_t data);
 	DECLARE_WRITE_LINE_MEMBER(adc_eoc_w);
 	uint32_t screen_update_wheelfir(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	DECLARE_WRITE_LINE_MEMBER(screen_vblank_wheelfir);
@@ -266,13 +264,13 @@ private:
 };
 
 
-WRITE16_MEMBER(wheelfir_state::wheelfir_scanline_cnt_w)
+void wheelfir_state::wheelfir_scanline_cnt_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_scanline_cnt);
 }
 
 
-WRITE16_MEMBER(wheelfir_state::wheelfir_blit_w)
+void wheelfir_state::wheelfir_blit_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	COMBINE_DATA(&m_blitter_data[offset]);
 
@@ -535,7 +533,7 @@ WRITE_LINE_MEMBER(wheelfir_state::screen_vblank_wheelfir)
 }
 
 
-WRITE16_MEMBER(wheelfir_state::wheelfir_7c0000_w)
+void wheelfir_state::wheelfir_7c0000_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (ACCESSING_BITS_8_15)
 	{
@@ -554,7 +552,7 @@ WRITE16_MEMBER(wheelfir_state::wheelfir_7c0000_w)
 	}
 }
 
-READ16_MEMBER(wheelfir_state::wheelfir_7c0000_r)
+uint16_t wheelfir_state::wheelfir_7c0000_r(offs_t offset, uint16_t mem_mask)
 {
 	uint16_t data = 0;
 
@@ -573,7 +571,7 @@ READ16_MEMBER(wheelfir_state::wheelfir_7c0000_r)
 	return data;
 }
 
-WRITE16_MEMBER(wheelfir_state::coin_cnt_w)
+void wheelfir_state::coin_cnt_w(uint16_t data)
 {
 	/* bits 0/1 coin counters */
 	machine().bookkeeping().coin_counter_w(0, data & 0x01);
@@ -700,7 +698,7 @@ void wheelfir_state::machine_start()
 	m_zoom_table = std::make_unique<int32_t[]>(ZOOM_TABLE_SIZE);
 	m_blitter_data = std::make_unique<uint16_t[]>(16);
 
-	m_scanlines = reinterpret_cast<scroll_info*>(auto_alloc_array(machine(), uint8_t, sizeof(scroll_info)*(NUM_SCANLINES+NUM_VBLANK_LINES)));
+	m_scanlines = std::make_unique<scroll_info[]>(NUM_SCANLINES+NUM_VBLANK_LINES);
 
 
 	for(int i=0;i<(ZOOM_TABLE_SIZE);++i)
@@ -740,7 +738,7 @@ void wheelfir_state::wheelfir(machine_config &config)
 	M68000(config, m_subcpu, 32000000/2);
 	m_subcpu->set_addrmap(AS_PROGRAM, &wheelfir_state::wheelfir_sub);
 
-	//config.m_minimum_quantum = attotime::from_hz(12000);
+	//config.set_maximum_quantum(attotime::from_hz(12000));
 
 	adc0808_device &adc(ADC0808(config, "adc", 500000)); // unknown clock
 	adc.eoc_ff_callback().set(FUNC(wheelfir_state::adc_eoc_w));

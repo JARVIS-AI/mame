@@ -46,7 +46,7 @@ TILE_GET_INFO_MEMBER(starshp1_state::get_tile_info)
 {
 	uint8_t code = m_playfield_ram[tile_index];
 
-	SET_TILE_INFO_MEMBER(0, code & 0x3f, 0, 0);
+	tileinfo.set(0, code & 0x3f, 0, 0);
 }
 
 
@@ -56,7 +56,7 @@ void starshp1_state::video_start()
 
 	int i;
 
-	m_bg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(starshp1_state::get_tile_info),this), TILEMAP_SCAN_ROWS,  16, 8, 32, 32);
+	m_bg_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(starshp1_state::get_tile_info)), TILEMAP_SCAN_ROWS, 16, 8, 32, 32);
 
 	m_bg_tilemap->set_transparent_pen(0);
 
@@ -80,7 +80,7 @@ void starshp1_state::video_start()
 }
 
 
-READ8_MEMBER(starshp1_state::starshp1_rng_r)
+uint8_t starshp1_state::starshp1_rng_r()
 {
 	int width = m_screen->width();
 	int height = m_screen->height();
@@ -98,7 +98,7 @@ READ8_MEMBER(starshp1_state::starshp1_rng_r)
 }
 
 
-WRITE8_MEMBER(starshp1_state::starshp1_ssadd_w)
+void starshp1_state::starshp1_ssadd_w(offs_t offset, uint8_t data)
 {
 	/*
 	 * The range of sprite position values doesn't suffice to
@@ -114,7 +114,7 @@ WRITE8_MEMBER(starshp1_state::starshp1_ssadd_w)
 }
 
 
-WRITE8_MEMBER(starshp1_state::starshp1_sspic_w)
+void starshp1_state::starshp1_sspic_w(uint8_t data)
 {
 	/*
 	 * Some mysterious game code at address $2CCE is causes
@@ -127,7 +127,7 @@ WRITE8_MEMBER(starshp1_state::starshp1_sspic_w)
 }
 
 
-WRITE8_MEMBER(starshp1_state::starshp1_playfield_w)
+void starshp1_state::starshp1_playfield_w(offs_t offset, uint8_t data)
 {
 	if (m_mux != 0)
 	{

@@ -126,8 +126,8 @@ static INPUT_PORTS_START( kim1 )
 
 	PORT_START("SPECIAL")
 	PORT_BIT( 0x80, 0x00, IPT_UNUSED )
-	PORT_BIT( 0x40, 0x40, IPT_KEYBOARD ) PORT_NAME("sw1: ST") PORT_CODE(KEYCODE_F7) PORT_CHANGED_MEMBER(DEVICE_SELF, kim1_state, trigger_nmi, nullptr)
-	PORT_BIT( 0x20, 0x20, IPT_KEYBOARD ) PORT_NAME("sw2: RS") PORT_CODE(KEYCODE_F3) PORT_CHANGED_MEMBER(DEVICE_SELF, kim1_state, trigger_reset, nullptr)
+	PORT_BIT( 0x40, 0x40, IPT_KEYBOARD ) PORT_NAME("sw1: ST") PORT_CODE(KEYCODE_F7) PORT_CHANGED_MEMBER(DEVICE_SELF, kim1_state, trigger_nmi, 0)
+	PORT_BIT( 0x20, 0x20, IPT_KEYBOARD ) PORT_NAME("sw2: RS") PORT_CODE(KEYCODE_F3) PORT_CHANGED_MEMBER(DEVICE_SELF, kim1_state, trigger_reset, 0)
 	PORT_DIPNAME(0x10, 0x10, "sw3: SS")                       PORT_CODE(KEYCODE_NUMLOCK) PORT_TOGGLE
 	PORT_DIPSETTING( 0x00, "single step")
 	PORT_DIPSETTING( 0x10, "run")
@@ -138,7 +138,7 @@ static INPUT_PORTS_START( kim1 )
 INPUT_PORTS_END
 
 // Read from keyboard
-READ8_MEMBER( kim1_state::kim1_u2_read_a )
+uint8_t kim1_state::kim1_u2_read_a()
 {
 	uint8_t data = 0xff;
 
@@ -150,7 +150,7 @@ READ8_MEMBER( kim1_state::kim1_u2_read_a )
 }
 
 // Write to 7-Segment LEDs
-WRITE8_MEMBER( kim1_state::kim1_u2_write_a )
+void kim1_state::kim1_u2_write_a(uint8_t data)
 {
 	uint8_t idx = ( m_u2_port_b >> 1 ) & 0x0f;
 
@@ -165,7 +165,7 @@ WRITE8_MEMBER( kim1_state::kim1_u2_write_a )
 }
 
 // Load from cassette
-READ8_MEMBER( kim1_state::kim1_u2_read_b )
+uint8_t kim1_state::kim1_u2_read_b()
 {
 	if ( m_riot2->portb_out_get() & 0x20 )
 		return 0xFF;
@@ -174,7 +174,7 @@ READ8_MEMBER( kim1_state::kim1_u2_read_b )
 }
 
 // Save to cassette
-WRITE8_MEMBER( kim1_state::kim1_u2_write_b )
+void kim1_state::kim1_u2_write_b(uint8_t data)
 {
 	m_u2_port_b = data;
 
@@ -246,7 +246,7 @@ void kim1_state::kim1(machine_config &config)
 	// basic machine hardware
 	M6502(config, m_maincpu, 1000000);        /* 1 MHz */
 	m_maincpu->set_addrmap(AS_PROGRAM, &kim1_state::kim1_map);
-	config.m_minimum_quantum = attotime::from_hz(60);
+	config.set_maximum_quantum(attotime::from_hz(60));
 
 	// video hardware
 	config.set_default_layout(layout_kim1);

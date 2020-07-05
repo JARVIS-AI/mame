@@ -53,6 +53,7 @@ Mighty Guy board layout:
                      YM3526
 
 ***************************************************************************/
+
 #include "emu.h"
 #include "includes/cop01.h"
 
@@ -77,13 +78,13 @@ Mighty Guy board layout:
  *
  *************************************/
 
-WRITE8_MEMBER(cop01_state::cop01_sound_command_w)
+void cop01_state::cop01_sound_command_w(uint8_t data)
 {
 	m_soundlatch->write(data);
 	m_audiocpu->set_input_line(0, ASSERT_LINE);
 }
 
-READ8_MEMBER(cop01_state::cop01_sound_command_r)
+uint8_t cop01_state::cop01_sound_command_r()
 {
 	int res = (m_soundlatch->read() & 0x7f) << 1;
 
@@ -102,18 +103,18 @@ READ8_MEMBER(cop01_state::cop01_sound_command_r)
 }
 
 
-CUSTOM_INPUT_MEMBER(cop01_state::mightguy_area_r)
+template <int Mask>
+READ_LINE_MEMBER(cop01_state::mightguy_area_r)
 {
-	int bit_mask = (uintptr_t)param;
-	return (ioport("FAKE")->read() & bit_mask) ? 0x01 : 0x00;
+	return (ioport("FAKE")->read() & Mask) ? 1 : 0;
 }
 
-WRITE8_MEMBER(cop01_state::cop01_irq_ack_w)
+void cop01_state::cop01_irq_ack_w(uint8_t data)
 {
 	m_maincpu->set_input_line(0, CLEAR_LINE );
 }
 
-READ8_MEMBER(cop01_state::cop01_sound_irq_ack_w)
+uint8_t cop01_state::cop01_sound_irq_ack_w()
 {
 	m_audiocpu->set_input_line(0, CLEAR_LINE );
 	return 0;
@@ -329,7 +330,7 @@ static INPUT_PORTS_START( mightguy )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_SERVICE( 0x40, IP_ACTIVE_LOW )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, cop01_state,mightguy_area_r, (void *)0x04)    // "Start Area" - see fake Dip Switch
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(cop01_state, mightguy_area_r<0x04>)    // "Start Area" - see fake Dip Switch
 
 	PORT_START("DSW2")
 	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Coin_A ) )
@@ -347,8 +348,8 @@ static INPUT_PORTS_START( mightguy )
 	PORT_DIPSETTING(    0x20, DEF_STR( Normal ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Hard ) )
 	PORT_DIPSETTING(    0x00, "Invincibility")
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, cop01_state,mightguy_area_r, (void *)0x01)    // "Start Area" - see fake Dip Switch
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, cop01_state,mightguy_area_r, (void *)0x02)    // "Start Area" - see fake Dip Switch
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(cop01_state, mightguy_area_r<0x01>)    // "Start Area" - see fake Dip Switch
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(cop01_state, mightguy_area_r<0x02>)    // "Start Area" - see fake Dip Switch
 
 	PORT_START("FAKE")  /* FAKE Dip Switch */
 	PORT_DIPNAME( 0x07, 0x07, "Starting Area" )

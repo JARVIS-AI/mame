@@ -90,26 +90,26 @@ protected:
 	void pce220_palette(palette_device &palette) const;
 
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
-	DECLARE_READ8_MEMBER( lcd_status_r );
-	DECLARE_WRITE8_MEMBER( lcd_control_w );
-	DECLARE_READ8_MEMBER( lcd_data_r );
-	DECLARE_WRITE8_MEMBER( lcd_data_w );
-	DECLARE_READ8_MEMBER( rom_bank_r );
-	DECLARE_WRITE8_MEMBER( rom_bank_w );
-	DECLARE_WRITE8_MEMBER( ram_bank_w );
-	DECLARE_READ8_MEMBER( timer_r );
-	DECLARE_WRITE8_MEMBER( timer_w );
-	DECLARE_WRITE8_MEMBER( boot_bank_w );
-	DECLARE_READ8_MEMBER( port15_r );
-	DECLARE_WRITE8_MEMBER( port15_w );
-	DECLARE_READ8_MEMBER( port18_r );
-	DECLARE_WRITE8_MEMBER( port18_w );
-	DECLARE_READ8_MEMBER( port1f_r );
-	DECLARE_WRITE8_MEMBER( kb_matrix_w );
-	DECLARE_READ8_MEMBER( kb_r );
-	DECLARE_READ8_MEMBER( irq_status_r );
-	DECLARE_WRITE8_MEMBER( irq_ack_w );
-	DECLARE_WRITE8_MEMBER( irq_mask_w );
+	uint8_t lcd_status_r();
+	void lcd_control_w(uint8_t data);
+	uint8_t lcd_data_r();
+	void lcd_data_w(uint8_t data);
+	uint8_t rom_bank_r();
+	void rom_bank_w(uint8_t data);
+	void ram_bank_w(uint8_t data);
+	uint8_t timer_r();
+	void timer_w(uint8_t data);
+	void boot_bank_w(uint8_t data);
+	uint8_t port15_r();
+	void port15_w(uint8_t data);
+	uint8_t port18_r();
+	void port18_w(uint8_t data);
+	uint8_t port1f_r();
+	void kb_matrix_w(offs_t offset, uint8_t data);
+	uint8_t kb_r();
+	uint8_t irq_status_r();
+	void irq_ack_w(uint8_t data);
+	void irq_mask_w(uint8_t data);
 
 	void pce220_io(address_map &map);
 	void pce220_mem(address_map &map);
@@ -134,12 +134,12 @@ private:
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
-	DECLARE_READ8_MEMBER( g850v_bank_r );
-	DECLARE_WRITE8_MEMBER( g850v_bank_w );
-	DECLARE_READ8_MEMBER( g850v_lcd_status_r );
-	DECLARE_WRITE8_MEMBER( g850v_lcd_control_w );
-	DECLARE_READ8_MEMBER( g850v_lcd_data_r );
-	DECLARE_WRITE8_MEMBER( g850v_lcd_data_w );
+	uint8_t g850v_bank_r();
+	void g850v_bank_w(uint8_t data);
+	uint8_t g850v_lcd_status_r();
+	void g850v_lcd_control_w(uint8_t data);
+	uint8_t g850v_lcd_data_r();
+	void g850v_lcd_data_w(uint8_t data);
 	void pcg850v_io(address_map &map);
 };
 
@@ -287,7 +287,7 @@ uint32_t pcg850v_state::screen_update(screen_device &screen, bitmap_ind16 &bitma
 	return 0;
 }
 
-READ8_MEMBER( pce220_state::lcd_status_r )
+uint8_t pce220_state::lcd_status_r()
 {
 	/*
 	x--- ---- Busy (not emulated)
@@ -301,7 +301,7 @@ READ8_MEMBER( pce220_state::lcd_status_r )
 	return data;
 }
 
-WRITE8_MEMBER( pce220_state::lcd_control_w )
+void pce220_state::lcd_control_w(uint8_t data)
 {
 	if((data & 0xfe) == 0x3e)       //Display on/off
 		m_lcd_on = data & 0x01;
@@ -313,24 +313,24 @@ WRITE8_MEMBER( pce220_state::lcd_control_w )
 		m_lcd_start_line = data & 0x3f;
 }
 
-READ8_MEMBER( pce220_state::lcd_data_r )
+uint8_t pce220_state::lcd_data_r()
 {
 	return m_vram[(m_lcd_index_row*0x40 + m_lcd_index_col - 1) & 0x1ff];
 }
 
-WRITE8_MEMBER( pce220_state::lcd_data_w )
+void pce220_state::lcd_data_w(uint8_t data)
 {
 	m_vram[(m_lcd_index_row*0x40 + m_lcd_index_col) & 0x1ff] = data;
 
 	m_lcd_index_col++;
 }
 
-READ8_MEMBER( pce220_state::rom_bank_r )
+uint8_t pce220_state::rom_bank_r()
 {
 	return m_bank_num;
 }
 
-WRITE8_MEMBER( pce220_state::rom_bank_w )
+void pce220_state::rom_bank_w(uint8_t data)
 {
 	uint8_t bank4 = data & 0x07; // bits 0,1,2
 	uint8_t bank3 = (data & 0x70) >> 4; // bits 4,5,6
@@ -341,7 +341,7 @@ WRITE8_MEMBER( pce220_state::rom_bank_w )
 	membank("bank4")->set_entry(bank4);
 }
 
-WRITE8_MEMBER( pce220_state::ram_bank_w )
+void pce220_state::ram_bank_w(uint8_t data)
 {
 	uint8_t bank = BIT(data,2);
 
@@ -349,17 +349,17 @@ WRITE8_MEMBER( pce220_state::ram_bank_w )
 	membank("bank2")->set_entry(bank);
 }
 
-READ8_MEMBER( pce220_state::timer_r )
+uint8_t pce220_state::timer_r()
 {
 	return m_timer_status;
 }
 
-WRITE8_MEMBER( pce220_state::timer_w )
+void pce220_state::timer_w(uint8_t data)
 {
 	m_timer_status = data & 1;
 }
 
-WRITE8_MEMBER( pce220_state::boot_bank_w )
+void pce220_state::boot_bank_w(uint8_t data)
 {
 	// set to 1 after boot for restore the ram in the first bank
 	if (data & 0x01)
@@ -370,7 +370,7 @@ WRITE8_MEMBER( pce220_state::boot_bank_w )
 	}
 }
 
-READ8_MEMBER( pce220_state::port15_r )
+uint8_t pce220_state::port15_r()
 {
 	/*
 	x--- ---- XIN input enabled
@@ -379,14 +379,14 @@ READ8_MEMBER( pce220_state::port15_r )
 	return m_port15;
 }
 
-WRITE8_MEMBER( pce220_state::port15_w )
+void pce220_state::port15_w(uint8_t data)
 {
 	m_serial->enable_interface(BIT(data, 7));
 
 	m_port15 = data;
 }
 
-READ8_MEMBER( pce220_state::port18_r )
+uint8_t pce220_state::port18_r()
 {
 	/*
 	x--- ---- XOUT/TXD
@@ -397,7 +397,7 @@ READ8_MEMBER( pce220_state::port18_r )
 	return m_port18;
 }
 
-WRITE8_MEMBER( pce220_state::port18_w )
+void pce220_state::port18_w(uint8_t data)
 {
 	m_beep->set_state(BIT(data, 7));
 
@@ -408,7 +408,7 @@ WRITE8_MEMBER( pce220_state::port18_w )
 	m_port18 = data;
 }
 
-READ8_MEMBER( pce220_state::port1f_r )
+uint8_t pce220_state::port1f_r()
 {
 	/*
 	x--- ---- ON - resp. break key status (?)
@@ -428,7 +428,7 @@ READ8_MEMBER( pce220_state::port1f_r )
 	return data;
 }
 
-WRITE8_MEMBER( pce220_state::kb_matrix_w )
+void pce220_state::kb_matrix_w(offs_t offset, uint8_t data)
 {
 	switch(offset)
 	{
@@ -441,7 +441,7 @@ WRITE8_MEMBER( pce220_state::kb_matrix_w )
 	}
 }
 
-READ8_MEMBER( pce220_state::kb_r )
+uint8_t pce220_state::kb_r()
 {
 	uint8_t data = 0x00;
 
@@ -469,7 +469,7 @@ READ8_MEMBER( pce220_state::kb_r )
 	return data;
 }
 
-READ8_MEMBER( pce220_state::irq_status_r )
+uint8_t pce220_state::irq_status_r()
 {
 	/*
 	---- -x-- timer
@@ -479,22 +479,22 @@ READ8_MEMBER( pce220_state::irq_status_r )
 	return m_irq_flag;
 }
 
-WRITE8_MEMBER( pce220_state::irq_ack_w )
+void pce220_state::irq_ack_w(uint8_t data)
 {
 	m_irq_flag &= ~data;
 }
 
-WRITE8_MEMBER( pce220_state::irq_mask_w )
+void pce220_state::irq_mask_w(uint8_t data)
 {
 	m_irq_mask = data;
 }
 
-READ8_MEMBER( pcg850v_state::g850v_bank_r )
+uint8_t pcg850v_state::g850v_bank_r()
 {
 	return m_g850v_bank_num;
 }
 
-WRITE8_MEMBER( pcg850v_state::g850v_bank_w )
+void pcg850v_state::g850v_bank_w(uint8_t data)
 {
 	address_space &space_prg = m_maincpu->space(AS_PROGRAM);
 
@@ -511,7 +511,7 @@ WRITE8_MEMBER( pcg850v_state::g850v_bank_w )
 	m_g850v_bank_num = data;
 }
 
-READ8_MEMBER( pcg850v_state::g850v_lcd_status_r )
+uint8_t pcg850v_state::g850v_lcd_status_r()
 {
 	/*
 	x--- ---- Busy (not emulated)
@@ -524,7 +524,7 @@ READ8_MEMBER( pcg850v_state::g850v_lcd_status_r )
 	return data;
 }
 
-WRITE8_MEMBER( pcg850v_state::g850v_lcd_control_w )
+void pcg850v_state::g850v_lcd_control_w(uint8_t data)
 {
 	if ((data & 0xf0) == 0x00)          // LCD column LSB
 	{
@@ -567,7 +567,7 @@ WRITE8_MEMBER( pcg850v_state::g850v_lcd_control_w )
 	}
 }
 
-READ8_MEMBER( pcg850v_state::g850v_lcd_data_r )
+uint8_t pcg850v_state::g850v_lcd_data_r()
 {
 	uint8_t data = m_vram[(m_lcd_index_row*0x100 + m_lcd_index_col - 1) & 0x7ff];
 
@@ -577,7 +577,7 @@ READ8_MEMBER( pcg850v_state::g850v_lcd_data_r )
 	return data;
 }
 
-WRITE8_MEMBER( pcg850v_state::g850v_lcd_data_w )
+void pcg850v_state::g850v_lcd_data_w(uint8_t data)
 {
 	m_vram[(m_lcd_index_row*0x100 + m_lcd_index_col) & 0x7ff] = data;
 
@@ -670,99 +670,99 @@ static INPUT_PORTS_START( pce220 )
 	PORT_CONFSETTING( 0x01, "Low Battery" )
 
 	PORT_START("LINE0")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F10)          PORT_NAME("OFF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Q)            PORT_NAME("Q")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('Q')  PORT_CHAR('!')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_W)            PORT_NAME("W")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('W')  PORT_CHAR('"')
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_E)            PORT_NAME("E")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('E')  PORT_CHAR('#')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_R)            PORT_NAME("R")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('R')  PORT_CHAR('$')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_T)            PORT_NAME("T")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('T')  PORT_CHAR('%')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Y)            PORT_NAME("Y")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('Y')  PORT_CHAR('&')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_U)            PORT_NAME("U")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('U')  PORT_CHAR('\'')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F10)          PORT_NAME("OFF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Q)            PORT_NAME("Q")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('Q')  PORT_CHAR('!')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_W)            PORT_NAME("W")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('W')  PORT_CHAR('"')
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_E)            PORT_NAME("E")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('E')  PORT_CHAR('#')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_R)            PORT_NAME("R")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('R')  PORT_CHAR('$')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_T)            PORT_NAME("T")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('T')  PORT_CHAR('%')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Y)            PORT_NAME("Y")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('Y')  PORT_CHAR('&')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_U)            PORT_NAME("U")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('U')  PORT_CHAR('\'')
 	PORT_START("LINE1")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_A)            PORT_NAME("A")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('A')  PORT_CHAR('[')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_S)            PORT_NAME("S")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('S')  PORT_CHAR(']')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_D)            PORT_NAME("D")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('D')  PORT_CHAR('{')
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F)            PORT_NAME("F")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('F')  PORT_CHAR('}')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_G)            PORT_NAME("G")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('G')  PORT_CHAR('\\')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_H)            PORT_NAME("H")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('H')  PORT_CHAR('|')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_J)            PORT_NAME("J")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('J')  PORT_CHAR('`')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_K)            PORT_NAME("K")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('K')  PORT_CHAR('_')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_A)            PORT_NAME("A")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('A')  PORT_CHAR('[')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_S)            PORT_NAME("S")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('S')  PORT_CHAR(']')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_D)            PORT_NAME("D")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('D')  PORT_CHAR('{')
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F)            PORT_NAME("F")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('F')  PORT_CHAR('}')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_G)            PORT_NAME("G")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('G')  PORT_CHAR('\\')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_H)            PORT_NAME("H")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('H')  PORT_CHAR('|')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_J)            PORT_NAME("J")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('J')  PORT_CHAR('`')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_K)            PORT_NAME("K")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('K')  PORT_CHAR('_')
 	PORT_START("LINE2")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Z)            PORT_NAME("Z")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('Z')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_X)            PORT_NAME("X")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('X')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_C)            PORT_NAME("C")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('C')
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_V)            PORT_NAME("V")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('V')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_B)            PORT_NAME("B")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('B')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_N)            PORT_NAME("N")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('N')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_M)            PORT_NAME("M")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('M')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COMMA)        PORT_NAME(",")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(',')  PORT_CHAR('?')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Z)            PORT_NAME("Z")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('Z')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_X)            PORT_NAME("X")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('X')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_C)            PORT_NAME("C")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('C')
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_V)            PORT_NAME("V")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('V')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_B)            PORT_NAME("B")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('B')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_N)            PORT_NAME("N")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('N')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_M)            PORT_NAME("M")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('M')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COMMA)        PORT_NAME(",")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(',')  PORT_CHAR('?')
 	PORT_START("LINE3")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F1)           PORT_NAME("CAL")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F2)           PORT_NAME("BAS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CAPSLOCK)     PORT_NAME("CAPS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_HOME)         PORT_NAME("ANS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_TAB)          PORT_NAME("TAB")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SPACE)        PORT_NAME("SPACE")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(' ')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DOWN)         PORT_NAME("DOWN")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(DOWN))
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_UP)           PORT_NAME("UP")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(UP))
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F1)           PORT_NAME("CAL")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F2)           PORT_NAME("BAS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CAPSLOCK)     PORT_NAME("CAPS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_HOME)         PORT_NAME("ANS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_TAB)          PORT_NAME("TAB")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SPACE)        PORT_NAME("SPACE")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(' ')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DOWN)         PORT_NAME("DOWN")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(DOWN))
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_UP)           PORT_NAME("UP")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(UP))
 	PORT_START("LINE4")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LEFT)         PORT_NAME("LEFT")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(LEFT))
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_RIGHT)        PORT_NAME("RIGHT")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(RIGHT))
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F4)           PORT_NAME("CONS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0)            PORT_NAME("0")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('0')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_STOP)         PORT_NAME(".")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('.')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_BACKSLASH)    PORT_NAME("+/-")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PLUS_PAD)     PORT_NAME("+")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('+')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ENTER)        PORT_NAME("RET")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(13)
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LEFT)         PORT_NAME("LEFT")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(LEFT))
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_RIGHT)        PORT_NAME("RIGHT")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(RIGHT))
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F4)           PORT_NAME("CONS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0)            PORT_NAME("0")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('0')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_STOP)         PORT_NAME(".")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('.')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_BACKSLASH)    PORT_NAME("+/-")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PLUS_PAD)     PORT_NAME("+")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('+')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ENTER)        PORT_NAME("RET")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(13)
 	PORT_START("LINE5")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_L)            PORT_NAME("L")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('L')  PORT_CHAR('=')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COLON)        PORT_NAME(";")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(';')  PORT_CHAR(':')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DEL)          PORT_NAME("DEL")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(DEL))
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1)            PORT_NAME("1")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('1')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2)            PORT_NAME("2")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('2')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3)            PORT_NAME("3")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('3')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_MINUS)        PORT_NAME("-")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('-')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F5)           PORT_NAME("M+")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_L)            PORT_NAME("L")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('L')  PORT_CHAR('=')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COLON)        PORT_NAME(";")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(';')  PORT_CHAR(':')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DEL)          PORT_NAME("DEL")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(DEL))
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1)            PORT_NAME("1")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('1')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2)            PORT_NAME("2")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('2')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3)            PORT_NAME("3")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('3')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_MINUS)        PORT_NAME("-")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('-')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F5)           PORT_NAME("M+")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("LINE6")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_I)            PORT_NAME("I")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('I')  PORT_CHAR('<')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_O)            PORT_NAME("O")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('O')  PORT_CHAR('>')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_INSERT)       PORT_NAME("INS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(INSERT))
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4)            PORT_NAME("4")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('4')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5)            PORT_NAME("5")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('5')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6)            PORT_NAME("6")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('6')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ASTERISK)     PORT_NAME("*")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('*')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F6)           PORT_NAME("RM")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_I)            PORT_NAME("I")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('I')  PORT_CHAR('<')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_O)            PORT_NAME("O")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('O')  PORT_CHAR('>')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_INSERT)       PORT_NAME("INS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(INSERT))
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4)            PORT_NAME("4")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('4')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5)            PORT_NAME("5")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('5')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6)            PORT_NAME("6")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('6')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ASTERISK)     PORT_NAME("*")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('*')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F6)           PORT_NAME("RM")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("LINE7")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_P)            PORT_NAME("P")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('P')  PORT_CHAR('@')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_BACKSPACE)    PORT_NAME("BS")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(BACKSPACE))
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F7)           PORT_NAME("n!")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7)            PORT_NAME("7")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('7')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8)            PORT_NAME("8")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('8')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9)            PORT_NAME("9")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('9')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SLASH)        PORT_NAME("/")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('/')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CLOSEBRACE)   PORT_NAME(")")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(')')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_P)            PORT_NAME("P")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('P')  PORT_CHAR('@')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_BACKSPACE)    PORT_NAME("BS")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(BACKSPACE))
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F7)           PORT_NAME("n!")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7)            PORT_NAME("7")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('7')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8)            PORT_NAME("8")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('8')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9)            PORT_NAME("9")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('9')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SLASH)        PORT_NAME("/")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('/')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CLOSEBRACE)   PORT_NAME(")")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(')')
 	PORT_START("LINE8")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1_PAD)        PORT_NAME("hyp")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2_PAD)        PORT_NAME("DEG")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3_PAD)        PORT_NAME("y^x")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('^')
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4_PAD)        PORT_NAME("sqrt")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5_PAD)        PORT_NAME("x^2")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_OPENBRACE)    PORT_NAME("(")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('(')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6_PAD)        PORT_NAME("1/x")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7_PAD)        PORT_NAME("MDF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1_PAD)        PORT_NAME("hyp")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2_PAD)        PORT_NAME("DEG")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3_PAD)        PORT_NAME("y^x")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('^')
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4_PAD)        PORT_NAME("sqrt")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5_PAD)        PORT_NAME("x^2")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_OPENBRACE)    PORT_NAME("(")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('(')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6_PAD)        PORT_NAME("1/x")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7_PAD)        PORT_NAME("MDF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("LINE9")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LCONTROL)     PORT_NAME("2nd")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8_PAD)        PORT_NAME("sin")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9_PAD)        PORT_NAME("cos")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0_PAD)        PORT_NAME("ln")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F8)           PORT_NAME("log")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F9)           PORT_NAME("tan")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F11)          PORT_NAME("FSE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ESC)          PORT_NAME("CCE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LCONTROL)     PORT_NAME("2nd")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8_PAD)        PORT_NAME("sin")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9_PAD)        PORT_NAME("cos")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0_PAD)        PORT_NAME("ln")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F8)           PORT_NAME("log")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F9)           PORT_NAME("tan")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F11)          PORT_NAME("FSE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ESC)          PORT_NAME("CCE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("SHIFT")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LSHIFT)       PORT_NAME("Shift")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_SHIFT_1)
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LSHIFT)       PORT_NAME("Shift")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_SHIFT_1)
 	PORT_START("ON")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PGUP)         PORT_NAME("ON")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  on_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PGUP)         PORT_NAME("ON")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  on_irq, 0 )
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( pcg850v )
@@ -772,99 +772,99 @@ static INPUT_PORTS_START( pcg850v )
 	PORT_CONFSETTING( 0x01, "Low Battery" )
 
 	PORT_START("LINE0")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F10)          PORT_NAME("OFF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Q)            PORT_NAME("Q")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('Q')  PORT_CHAR('!')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_W)            PORT_NAME("W")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('W')  PORT_CHAR('"')
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_E)            PORT_NAME("E")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('E')  PORT_CHAR('#')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_R)            PORT_NAME("R")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('R')  PORT_CHAR('$')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_T)            PORT_NAME("T")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('T')  PORT_CHAR('%')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Y)            PORT_NAME("Y")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('Y')  PORT_CHAR('&')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_U)            PORT_NAME("U")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('U')  PORT_CHAR('\'')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F10)          PORT_NAME("OFF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Q)            PORT_NAME("Q")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('Q')  PORT_CHAR('!')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_W)            PORT_NAME("W")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('W')  PORT_CHAR('"')
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_E)            PORT_NAME("E")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('E')  PORT_CHAR('#')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_R)            PORT_NAME("R")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('R')  PORT_CHAR('$')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_T)            PORT_NAME("T")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('T')  PORT_CHAR('%')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Y)            PORT_NAME("Y")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('Y')  PORT_CHAR('&')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_U)            PORT_NAME("U")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('U')  PORT_CHAR('\'')
 	PORT_START("LINE1")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_A)            PORT_NAME("A")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('A')  PORT_CHAR('[')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_S)            PORT_NAME("S")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('S')  PORT_CHAR(']')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_D)            PORT_NAME("D")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('D')  PORT_CHAR('{')
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F)            PORT_NAME("F")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('F')  PORT_CHAR('}')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_G)            PORT_NAME("G")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('G')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_H)            PORT_NAME("H")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('H')  PORT_CHAR('|')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_J)            PORT_NAME("J")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('J')  PORT_CHAR('`')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_K)            PORT_NAME("K")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('K')  PORT_CHAR('_')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_A)            PORT_NAME("A")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('A')  PORT_CHAR('[')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_S)            PORT_NAME("S")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('S')  PORT_CHAR(']')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_D)            PORT_NAME("D")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('D')  PORT_CHAR('{')
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F)            PORT_NAME("F")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('F')  PORT_CHAR('}')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_G)            PORT_NAME("G")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('G')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_H)            PORT_NAME("H")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('H')  PORT_CHAR('|')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_J)            PORT_NAME("J")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('J')  PORT_CHAR('`')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_K)            PORT_NAME("K")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('K')  PORT_CHAR('_')
 	PORT_START("LINE2")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Z)            PORT_NAME("Z")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('Z')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_X)            PORT_NAME("X")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('X')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_C)            PORT_NAME("C")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('C')
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_V)            PORT_NAME("V")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('V')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_B)            PORT_NAME("B")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('B')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_N)            PORT_NAME("N")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('N')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_M)            PORT_NAME("M")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('M')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COMMA)        PORT_NAME(",")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(',')  PORT_CHAR('?')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_Z)            PORT_NAME("Z")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('Z')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_X)            PORT_NAME("X")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('X')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_C)            PORT_NAME("C")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('C')
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_V)            PORT_NAME("V")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('V')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_B)            PORT_NAME("B")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('B')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_N)            PORT_NAME("N")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('N')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_M)            PORT_NAME("M")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('M')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COMMA)        PORT_NAME(",")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(',')  PORT_CHAR('?')
 	PORT_START("LINE3")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F1)           PORT_NAME("BAS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F2)           PORT_NAME("TEXT")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CAPSLOCK)     PORT_NAME("CAPS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_HOME)         PORT_NAME("KANA")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_TAB)          PORT_NAME("TAB")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SPACE)        PORT_NAME("SPACE")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(' ')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DOWN)         PORT_NAME("DOWN")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(DOWN))
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_UP)           PORT_NAME("UP")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(UP))
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F1)           PORT_NAME("BAS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F2)           PORT_NAME("TEXT")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CAPSLOCK)     PORT_NAME("CAPS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_HOME)         PORT_NAME("KANA")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_TAB)          PORT_NAME("TAB")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SPACE)        PORT_NAME("SPACE")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(' ')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DOWN)         PORT_NAME("DOWN")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(DOWN))
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_UP)           PORT_NAME("UP")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(UP))
 	PORT_START("LINE4")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LEFT)         PORT_NAME("LEFT")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(LEFT))
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_RIGHT)        PORT_NAME("RIGHT")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(RIGHT))
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F4)           PORT_NAME("CONS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0)            PORT_NAME("0")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('0')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_STOP)         PORT_NAME(".")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('.')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_EQUALS)       PORT_NAME("=")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('=')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PLUS_PAD)     PORT_NAME("+")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('+')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ENTER)        PORT_NAME("RET")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(13)
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LEFT)         PORT_NAME("LEFT")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(LEFT))
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_RIGHT)        PORT_NAME("RIGHT")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(RIGHT))
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F4)           PORT_NAME("CONS")       PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0)            PORT_NAME("0")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('0')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_STOP)         PORT_NAME(".")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('.')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_EQUALS)       PORT_NAME("=")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('=')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PLUS_PAD)     PORT_NAME("+")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('+')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ENTER)        PORT_NAME("RET")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(13)
 	PORT_START("LINE5")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_L)            PORT_NAME("L")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('L')  PORT_CHAR('=')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COLON)        PORT_NAME(";")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(';')  PORT_CHAR(':')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DEL)          PORT_NAME("DEL")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(DEL))
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1)            PORT_NAME("1")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('1')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2)            PORT_NAME("2")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('2')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3)            PORT_NAME("3")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('3')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_MINUS)        PORT_NAME("-")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('-')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F5)           PORT_NAME("M+")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_L)            PORT_NAME("L")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('L')  PORT_CHAR('=')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_COLON)        PORT_NAME(";")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(';')  PORT_CHAR(':')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_DEL)          PORT_NAME("DEL")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(DEL))
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1)            PORT_NAME("1")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('1')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2)            PORT_NAME("2")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('2')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3)            PORT_NAME("3")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('3')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_MINUS)        PORT_NAME("-")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('-')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F5)           PORT_NAME("M+")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("LINE6")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_I)            PORT_NAME("I")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('I')  PORT_CHAR('<')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_O)            PORT_NAME("O")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('O')  PORT_CHAR('>')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_INSERT)       PORT_NAME("INS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(INSERT))
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4)            PORT_NAME("4")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('4')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5)            PORT_NAME("5")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('5')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6)            PORT_NAME("6")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('6')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ASTERISK)     PORT_NAME("*")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('*')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F6)           PORT_NAME("RM")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_I)            PORT_NAME("I")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('I')  PORT_CHAR('<')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_O)            PORT_NAME("O")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('O')  PORT_CHAR('>')
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_INSERT)       PORT_NAME("INS")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(INSERT))
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4)            PORT_NAME("4")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('4')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5)            PORT_NAME("5")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('5')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6)            PORT_NAME("6")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('6')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ASTERISK)     PORT_NAME("*")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('*')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F6)           PORT_NAME("RM")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("LINE7")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_P)            PORT_NAME("P")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('P')  PORT_CHAR('@')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_BACKSPACE)    PORT_NAME("BS")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_MAMEKEY(BACKSPACE))
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F7)           PORT_NAME("pi")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7)            PORT_NAME("7")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('7')
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8)            PORT_NAME("8")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('8')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9)            PORT_NAME("9")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('9')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SLASH)        PORT_NAME("/")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('/')
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CLOSEBRACE)   PORT_NAME(")")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(')')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_P)            PORT_NAME("P")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('P')  PORT_CHAR('@')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_BACKSPACE)    PORT_NAME("BS")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_MAMEKEY(BACKSPACE))
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F7)           PORT_NAME("pi")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7)            PORT_NAME("7")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('7')
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8)            PORT_NAME("8")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('8')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9)            PORT_NAME("9")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('9')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_SLASH)        PORT_NAME("/")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('/')
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_CLOSEBRACE)   PORT_NAME(")")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(')')
 	PORT_START("LINE8")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1_PAD)        PORT_NAME("nPr")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2_PAD)        PORT_NAME("DEG")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3_PAD)        PORT_NAME("SQR")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4_PAD)        PORT_NAME("SQU")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5_PAD)        PORT_NAME("x^y")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('^')
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_OPENBRACE)    PORT_NAME("(")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR('(')
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6_PAD)        PORT_NAME("1/x")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7_PAD)        PORT_NAME("MDF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_1_PAD)        PORT_NAME("nPr")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_2_PAD)        PORT_NAME("DEG")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_3_PAD)        PORT_NAME("SQR")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_4_PAD)        PORT_NAME("SQU")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_5_PAD)        PORT_NAME("x^y")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('^')
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_OPENBRACE)    PORT_NAME("(")          PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR('(')
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_6_PAD)        PORT_NAME("1/x")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_7_PAD)        PORT_NAME("MDF")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("LINE9")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LCONTROL)     PORT_NAME("2nd")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8_PAD)        PORT_NAME("sin")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9_PAD)        PORT_NAME("cos")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0_PAD)        PORT_NAME("ln")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F8)           PORT_NAME("log")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F9)           PORT_NAME("tan")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F11)          PORT_NAME("FSE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
-	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ESC)          PORT_NAME("CCE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LCONTROL)     PORT_NAME("2nd")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_8_PAD)        PORT_NAME("sin")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_9_PAD)        PORT_NAME("cos")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_0_PAD)        PORT_NAME("ln")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F8)           PORT_NAME("log")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F9)           PORT_NAME("tan")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x40, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_F11)          PORT_NAME("FSE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
+	PORT_BIT(0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_ESC)          PORT_NAME("CCE")        PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )
 	PORT_START("SHIFT")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LSHIFT)       PORT_NAME("Shift")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, nullptr )  PORT_CHAR(UCHAR_SHIFT_1)
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_LSHIFT)       PORT_NAME("Shift")      PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  kb_irq, 0 )  PORT_CHAR(UCHAR_SHIFT_1)
 	PORT_START("ON")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PGUP)         PORT_NAME("ON")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  on_irq, nullptr )
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD)    PORT_CODE(KEYCODE_PGUP)         PORT_NAME("ON")         PORT_CHANGED_MEMBER(DEVICE_SELF, pce220_state,  on_irq, 0 )
 INPUT_PORTS_END
 
 void pce220_state::machine_start()

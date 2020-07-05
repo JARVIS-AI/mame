@@ -19,6 +19,7 @@
 #define __EMU_H__
 
 #include <list>
+#include <forward_list>
 #include <vector>
 #include <memory>
 #include <map>
@@ -66,7 +67,6 @@
 #include "addrmap.h" // Needs optional_device<> and required_device<>
 #include "distate.h"
 #include "dimemory.h"
-#include "dirom.h"
 #include "opresolv.h"
 #include "dipalette.h"
 #include "digfx.h"
@@ -94,7 +94,6 @@
 
 // video-related
 #include "drawgfx.h"
-#include "tilemap.h"
 #include "video.h"
 
 // sound-related

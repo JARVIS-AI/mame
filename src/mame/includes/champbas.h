@@ -15,6 +15,7 @@
 #include "machine/timer.h"
 #include "machine/watchdog.h"
 #include "emupal.h"
+#include "tilemap.h"
 
 
 class champbas_state : public driver_device
@@ -35,7 +36,7 @@ public:
 	{
 	}
 
-	DECLARE_CUSTOM_INPUT_MEMBER(watchdog_bit2);
+	DECLARE_READ_LINE_MEMBER(watchdog_bit2);
 
 	void init_champbas();
 
@@ -51,13 +52,11 @@ public:
 protected:
 	// handlers
 	DECLARE_WRITE_LINE_MEMBER(irq_enable_w);
-	DECLARE_WRITE_LINE_MEMBER(mcu_switch_w);
-	DECLARE_WRITE_LINE_MEMBER(mcu_start_w);
-	DECLARE_READ8_MEMBER(champbja_protection_r);
+	uint8_t champbja_protection_r(offs_t offset);
 
-	INTERRUPT_GEN_MEMBER(vblank_irq);
+	DECLARE_WRITE_LINE_MEMBER(vblank_irq);
 
-	DECLARE_WRITE8_MEMBER(tilemap_w);
+	void tilemap_w(offs_t offset, uint8_t data);
 	DECLARE_WRITE_LINE_MEMBER(gfxbank_w);
 	DECLARE_WRITE_LINE_MEMBER(palette_bank_w);
 	DECLARE_WRITE_LINE_MEMBER(flipscreen_w);

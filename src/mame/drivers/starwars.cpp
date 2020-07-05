@@ -26,7 +26,6 @@
 
 #include "emu.h"
 #include "includes/starwars.h"
-#include "includes/slapstic.h"
 
 #include "cpu/m6809/m6809.h"
 #include "machine/74259.h"
@@ -42,7 +41,7 @@
 #define CLOCK_3KHZ   (MASTER_CLOCK / 4096)
 
 
-WRITE8_MEMBER(starwars_state::quad_pokeyn_w)
+void starwars_state::quad_pokeyn_w(offs_t offset, uint8_t data)
 {
 	int pokey_num = (offset >> 3) & ~0x04;
 	int control = (offset & 0x20) >> 2;
@@ -80,7 +79,7 @@ void starwars_state::machine_reset()
  *
  *************************************/
 
-WRITE8_MEMBER(starwars_state::irq_ack_w)
+void starwars_state::irq_ack_w(uint8_t data)
 {
 	m_maincpu->set_input_line(M6809_IRQ_LINE, CLEAR_LINE);
 }
@@ -106,7 +105,7 @@ void starwars_state::esb_slapstic_tweak(address_space &space, offs_t offset)
 }
 
 
-READ8_MEMBER(starwars_state::esb_slapstic_r)
+uint8_t starwars_state::esb_slapstic_r(address_space &space, offs_t offset)
 {
 	int result = m_slapstic_base[offset];
 	esb_slapstic_tweak(space, offset);
@@ -114,7 +113,7 @@ READ8_MEMBER(starwars_state::esb_slapstic_r)
 }
 
 
-WRITE8_MEMBER(starwars_state::esb_slapstic_w)
+void starwars_state::esb_slapstic_w(address_space &space, offs_t offset, uint8_t data)
 {
 	esb_slapstic_tweak(space, offset);
 }
@@ -213,9 +212,9 @@ static INPUT_PORTS_START( starwars )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON3 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 )
 	/* Bit 6 is VG_HALT */
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER("avg", avg_starwars_device, done_r, nullptr)
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("avg", avg_starwars_device, done_r)
 	/* Bit 7 is MATH_RUN - see machine/starwars.c */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, starwars_state,matrix_flag_r, nullptr)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(starwars_state, matrix_flag_r)
 
 	PORT_START("DSW0")
 	PORT_DIPNAME( 0x03, 0x02, "Starting Shields" )  PORT_DIPLOCATION("10D:1,2")

@@ -141,16 +141,16 @@ public:
 private:
 	uint32_t screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
 
-	DECLARE_READ16_MEMBER(port3_r);
-	DECLARE_WRITE16_MEMBER(port3_w);
-	DECLARE_READ16_MEMBER(port5_r);
-	DECLARE_WRITE16_MEMBER(port5_w);
-	DECLARE_READ16_MEMBER(port6_r);
-	DECLARE_WRITE16_MEMBER(port6_w);
-	DECLARE_READ16_MEMBER(porta_r);
-	DECLARE_READ16_MEMBER(portg_r);
+	uint16_t port3_r();
+	void port3_w(uint16_t data);
+	uint16_t port5_r();
+	void port5_w(uint16_t data);
+	uint16_t port6_r();
+	void port6_w(uint16_t data);
+	uint16_t porta_r();
+	uint16_t portg_r();
 
-	DECLARE_WRITE16_MEMBER(vctl_w);
+	void vctl_w(uint16_t data);
 
 	void invqix_io_map(address_map &map);
 	void invqix_prg_map(address_map &map);
@@ -234,47 +234,47 @@ uint32_t invqix_state::screen_update(screen_device &screen, bitmap_rgb32 &bitmap
 	return 0;
 }
 
-READ16_MEMBER(invqix_state::port3_r)
+uint16_t invqix_state::port3_r()
 {
 	return (m_eeprom->do_read() << 5) | 0x03;
 }
 
-WRITE16_MEMBER(invqix_state::port3_w)
+void invqix_state::port3_w(uint16_t data)
 {
 	m_eeprom->cs_write((data >> 2) & 1);
 	m_eeprom->di_write((data >> 4) & 1);
 	m_eeprom->clk_write((data >> 3) & 1);
 }
 
-READ16_MEMBER(invqix_state::port5_r)
+uint16_t invqix_state::port5_r()
 {
 	return 0;
 }
 
-WRITE16_MEMBER(invqix_state::port5_w)
+void invqix_state::port5_w(uint16_t data)
 {
 }
 
-READ16_MEMBER(invqix_state::port6_r)
+uint16_t invqix_state::port6_r()
 {
 	return 0;
 }
 
-WRITE16_MEMBER(invqix_state::port6_w)
+void invqix_state::port6_w(uint16_t data)
 {
 }
 
-READ16_MEMBER(invqix_state::porta_r)
+uint16_t invqix_state::porta_r()
 {
 	return 0xf0;
 }
 
-READ16_MEMBER(invqix_state::portg_r)
+uint16_t invqix_state::portg_r()
 {
 	return 0;
 }
 
-WRITE16_MEMBER(invqix_state::vctl_w)
+void invqix_state::vctl_w(uint16_t data)
 {
 	m_vctl = data;
 }
@@ -362,8 +362,8 @@ void invqix_state::invqix(machine_config &config)
 }
 
 ROM_START( invqix )
-	ROM_REGION(0x200000, "program", 0)
-	ROM_LOAD( "f34-02.ic2",   0x000000, 0x200000, CRC(035ace40) SHA1(e61f180024102c7a136b1c7f974c71e5dc698a1e) )
+	ROM_REGION16_BE(0x200000, "program", 0)
+	ROM_LOAD16_WORD_SWAP( "f34-02.ic2",   0x000000, 0x200000, CRC(035ace40) SHA1(e61f180024102c7a136b1c7f974c71e5dc698a1e) )
 
 	ROM_REGION(0x1000000, "oki", 0)
 	ROM_LOAD( "f34-01.ic13",  0x000000, 0x200000, CRC(7b055722) SHA1(8152bf04a58de15aefc4244e40733275e21818e1) ) /* Can also be labeled F34-03 based on ROM chip type */

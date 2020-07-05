@@ -38,7 +38,7 @@ public:
 	void xmen(machine_config &config);
 	void xmen6p(machine_config &config);
 
-	DECLARE_CUSTOM_INPUT_MEMBER(xmen_frame_r);
+	DECLARE_READ_LINE_MEMBER(xmen_frame_r);
 
 private:
 	/* video-related */
@@ -69,9 +69,9 @@ private:
 	required_device<k054321_device> m_k054321;
 
 	required_memory_bank m_z80bank;
-	DECLARE_WRITE16_MEMBER(eeprom_w);
-	DECLARE_WRITE16_MEMBER(xmen_18fa00_w);
-	DECLARE_WRITE8_MEMBER(sound_bankswitch_w);
+	void eeprom_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void xmen_18fa00_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
+	void sound_bankswitch_w(uint8_t data);
 
 	virtual void machine_start() override;
 	virtual void machine_reset() override;

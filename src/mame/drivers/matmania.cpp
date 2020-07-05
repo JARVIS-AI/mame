@@ -49,20 +49,20 @@ The driver has been updated accordingly.
  *
  *************************************/
 
-READ8_MEMBER(matmania_state::maniach_mcu_status_r)
+uint8_t matmania_state::maniach_mcu_status_r()
 {
 	return
 			((CLEAR_LINE == m_mcu->mcu_semaphore_r()) ? 0x01 : 0x00) |
 			((CLEAR_LINE == m_mcu->host_semaphore_r()) ? 0x02 : 0x00);
 }
 
-WRITE8_MEMBER(matmania_state::matmania_sh_command_w)
+void matmania_state::matmania_sh_command_w(uint8_t data)
 {
 	m_soundlatch->write(data);
 	m_audiocpu->set_input_line(M6502_IRQ_LINE, HOLD_LINE);
 }
 
-WRITE8_MEMBER(matmania_state::maniach_sh_command_w)
+void matmania_state::maniach_sh_command_w(uint8_t data)
 {
 	m_soundlatch->write(data);
 	m_audiocpu->set_input_line(M6809_IRQ_LINE, HOLD_LINE);
@@ -310,7 +310,7 @@ void matmania_state::matmania(machine_config &config)
 	m_audiocpu->set_addrmap(AS_PROGRAM, &matmania_state::matmania_sound_map);
 	m_audiocpu->set_periodic_int(FUNC(matmania_state::nmi_line_pulse), attotime::from_hz(15*60)); /* ???? */
 
-	config.m_minimum_quantum = attotime::from_hz(6000);
+	config.set_maximum_quantum(attotime::from_hz(6000));
 
 	/* video hardware */
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
@@ -350,7 +350,7 @@ void matmania_state::maniach(machine_config &config)
 
 	TAITO68705_MCU(config, m_mcu, 1500000*2);  /* (don't know really how fast, but it doesn't need to even be this fast) */
 
-	config.m_minimum_quantum = attotime::from_hz(6000);  /* 100 CPU slice per frame - high interleaving to sync main and mcu */
+	config.set_maximum_quantum(attotime::from_hz(6000));  /* 100 CPU slice per frame - high interleaving to sync main and mcu */
 
 	/* video hardware */
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);

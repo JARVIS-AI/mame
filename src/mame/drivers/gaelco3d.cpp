@@ -240,7 +240,7 @@ INTERRUPT_GEN_MEMBER(gaelco3d_state::vblank_gen)
 }
 
 
-WRITE16_MEMBER(gaelco3d_state::irq_ack_w)
+void gaelco3d_state::irq_ack_w(uint16_t data)
 {
 	m_maincpu->set_input_line(2, CLEAR_LINE);
 }
@@ -253,7 +253,7 @@ WRITE16_MEMBER(gaelco3d_state::irq_ack_w)
  *
  *************************************/
 
-READ16_MEMBER(gaelco3d_state::eeprom_data_r)
+uint16_t gaelco3d_state::eeprom_data_r(offs_t offset, uint16_t mem_mask)
 {
 	uint32_t result = 0xffff;
 
@@ -262,7 +262,7 @@ READ16_MEMBER(gaelco3d_state::eeprom_data_r)
 		/* bit 0 is clock */
 		/* bit 1 active */
 		result &= ~uint32_t(gaelco_serial_device::EXT_STATUS_MASK);
-		result |= m_serial->status_r(space, 0);
+		result |= m_serial->status_r();
 	}
 
 	if (m_eeprom->do_read())
@@ -280,7 +280,7 @@ READ16_MEMBER(gaelco3d_state::eeprom_data_r)
  *
  *************************************/
 
-READ16_MEMBER(gaelco3d_state::sound_status_r)
+uint16_t gaelco3d_state::sound_status_r(offs_t offset, uint16_t mem_mask)
 {
 	if (LOG)
 		logerror("%s:sound_status_r(%02X) = %02X\n", machine().describe_context(), offset, m_sound_status);
@@ -290,7 +290,7 @@ READ16_MEMBER(gaelco3d_state::sound_status_r)
 }
 
 
-WRITE16_MEMBER(gaelco3d_state::sound_status_w)
+void gaelco3d_state::sound_status_w(uint16_t data)
 {
 	if (LOG)
 		logerror("sound_status_w(%02X)\n", m_sound_status);
@@ -305,10 +305,10 @@ WRITE16_MEMBER(gaelco3d_state::sound_status_w)
  *
  *************************************/
 
-CUSTOM_INPUT_MEMBER(gaelco3d_state::analog_bit_r)
+template <int N>
+READ_LINE_MEMBER(gaelco3d_state::analog_bit_r)
 {
-	int which = (uintptr_t)param;
-	return (m_analog_ports[which] >> 7) & 0x01;
+	return (m_analog_ports[N] >> 7) & 0x01;
 }
 
 
@@ -337,10 +337,10 @@ WRITE_LINE_MEMBER(gaelco3d_state::analog_port_latch_w)
 	}
 }
 
-CUSTOM_INPUT_MEMBER(gaelco3d_state::fp_analog_bit_r)
+template <int N>
+READ_LINE_MEMBER(gaelco3d_state::fp_analog_bit_r)
 {
-	int which = (uintptr_t)param;
-	return (m_fp_analog_ports[which] >> m_fp_clock) & 1;
+	return (m_fp_analog_ports[N] >> m_fp_clock) & 1;
 }
 
 WRITE_LINE_MEMBER(gaelco3d_state::fp_analog_clock_w)
@@ -375,20 +375,20 @@ WRITE_LINE_MEMBER(gaelco3d_state::fp_analog_clock_w)
  *
  *************************************/
 
-READ32_MEMBER(gaelco3d_state::tms_m68k_ram_r)
+uint32_t gaelco3d_state::tms_m68k_ram_r(offs_t offset)
 {
 //  logerror("%s:tms_m68k_ram_r(%04X) = %08X\n", machine().describe_context(), offset, !(offset & 1) ? ((int32_t)m_m68k_ram_base[offset/2] >> 16) : (int)(int16_t)m_m68k_ram_base[offset/2]);
 	return (int32_t)(int16_t)m_m68k_ram_base[offset ^ m_tms_offset_xor];
 }
 
 
-WRITE32_MEMBER(gaelco3d_state::tms_m68k_ram_w)
+void gaelco3d_state::tms_m68k_ram_w(offs_t offset, uint32_t data)
 {
 	m_m68k_ram_base[offset ^ m_tms_offset_xor] = data;
 }
 
 
-WRITE8_MEMBER(gaelco3d_state::tms_iack_w)
+void gaelco3d_state::tms_iack_w(offs_t offset, uint8_t data)
 {
 	if (LOG)
 		logerror("iack_w(%d) - %06X\n", data, offset);
@@ -466,7 +466,7 @@ ADSP control 3FF2 W = 4A0F  (S1_CONTROL_REG)
 ADSP control 3FFF W = 0C08  (SYSCONTROL_REG)
 */
 
-WRITE16_MEMBER(gaelco3d_state::adsp_control_w)
+void gaelco3d_state::adsp_control_w(offs_t offset, uint16_t data)
 {
 	if (LOG)
 		logerror("ADSP control %04X W = %04X\n", 0x3fe0 + offset, data);
@@ -506,7 +506,7 @@ WRITE16_MEMBER(gaelco3d_state::adsp_control_w)
 }
 
 
-WRITE16_MEMBER(gaelco3d_state::adsp_rombank_w)
+void gaelco3d_state::adsp_rombank_w(offs_t offset, uint16_t data)
 {
 	if (LOG)
 		logerror("adsp_rombank_w(%d) = %04X\n", offset, data);
@@ -551,7 +551,7 @@ TIMER_DEVICE_CALLBACK_MEMBER(gaelco3d_state::adsp_autobuffer_irq)
 	m_adsp->set_state_int(ADSP2100_I0 + m_adsp_ireg, reg);
 }
 
-WRITE32_MEMBER(gaelco3d_state::adsp_tx_callback)
+void gaelco3d_state::adsp_tx_callback(offs_t offset, uint32_t data)
 {
 	/* check if it's for SPORT1 */
 	if (offset != 1)
@@ -669,9 +669,9 @@ void gaelco3d_state::main_map(address_map &map)
 	map(0x510042, 0x510043).r(FUNC(gaelco3d_state::sound_status_r));
 	map(0x510100, 0x510101).rw(FUNC(gaelco3d_state::eeprom_data_r), FUNC(gaelco3d_state::irq_ack_w));
 	map(0x510103, 0x510103).r(m_serial, FUNC(gaelco_serial_device::data_r));
-	map(0x510103, 0x510103).select(0x000038).lw8("mainlatch_w", [this](offs_t offset, u8 data) { m_mainlatch->write_d0(offset >> 3, data); });
+	map(0x510103, 0x510103).select(0x000038).lw8(NAME([this] (offs_t offset, u8 data) { m_mainlatch->write_d0(offset >> 3, data); }));
 	map(0x510105, 0x510105).w(m_serial, FUNC(gaelco_serial_device::data_w));
-	map(0x510107, 0x510107).select(0x000070).lw8("outlatch_w", [this](offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 4, data); });
+	map(0x510107, 0x510107).select(0x000070).lw8(NAME([this] (offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 4, data); }));
 	map(0xfe0000, 0xfeffff).ram().share("m68k_ram_base");
 }
 
@@ -688,9 +688,9 @@ void gaelco3d_state::main020_map(address_map &map)
 	map(0x510042, 0x510043).r(FUNC(gaelco3d_state::sound_status_r));
 	map(0x510100, 0x510101).rw(FUNC(gaelco3d_state::eeprom_data_r), FUNC(gaelco3d_state::irq_ack_w));
 	map(0x510103, 0x510103).r(m_serial, FUNC(gaelco_serial_device::data_r));
-	map(0x510103, 0x510103).select(0x000038).lw8("mainlatch_w", [this](offs_t offset, u8 data) { m_mainlatch->write_d0(offset >> 3, data); });
+	map(0x510103, 0x510103).select(0x000038).lw8(NAME([this] (offs_t offset, u8 data) { m_mainlatch->write_d0(offset >> 3, data); }));
 	map(0x510105, 0x510105).w(m_serial, FUNC(gaelco_serial_device::data_w));
-	map(0x510107, 0x510107).select(0x000070).lw8("outlatch_w", [this](offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 4, data); });
+	map(0x510107, 0x510107).select(0x000070).lw8(NAME([this] (offs_t offset, u8 data) { m_outlatch->write_d0(offset >> 4, data); }));
 	map(0xfe0000, 0xfeffff).ram().share("m68k_ram_base");
 }
 
@@ -747,10 +747,10 @@ static INPUT_PORTS_START( speedup )
 	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_PLAYER(2)   // checked after reading analog from port 1
 	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_PLAYER(2)   // checked after reading analog from port 2
 	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_PLAYER(2)   // checked after reading analog from port 3
-	PORT_BIT( 0x1000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)0)
-	PORT_BIT( 0x2000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)1)
-	PORT_BIT( 0x4000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)2)
-	PORT_BIT( 0x8000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)3)
+	PORT_BIT( 0x1000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<0>)
+	PORT_BIT( 0x2000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<1>)
+	PORT_BIT( 0x4000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<2>)
+	PORT_BIT( 0x8000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<3>)
 
 	PORT_START("IN3")
 	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_COIN2 )        // verified
@@ -786,10 +786,10 @@ static INPUT_PORTS_START( surfplnt )
 	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_SERVICE_NO_TOGGLE( 0x0800, IP_ACTIVE_LOW )
-	PORT_BIT( 0x1000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)0)
-	PORT_BIT( 0x2000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)1)
-	PORT_BIT( 0x4000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)2)
-	PORT_BIT( 0x8000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)3)
+	PORT_BIT( 0x1000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<0>)
+	PORT_BIT( 0x2000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<1>)
+	PORT_BIT( 0x4000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<2>)
+	PORT_BIT( 0x8000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<3>)
 
 	PORT_START("IN3")
 	PORT_BIT( 0xffff, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -823,10 +823,10 @@ static INPUT_PORTS_START( radikalb )
 	PORT_BIT( 0x02000000, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x04000000, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_SERVICE_NO_TOGGLE( 0x08000000, IP_ACTIVE_LOW )
-	PORT_BIT( 0x10000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)0)
-	PORT_BIT( 0x20000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)1)
-	PORT_BIT( 0x40000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)2)
-	PORT_BIT( 0x80000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,analog_bit_r, (void *)3)
+	PORT_BIT( 0x10000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<0>)
+	PORT_BIT( 0x20000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<1>)
+	PORT_BIT( 0x40000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<2>)
+	PORT_BIT( 0x80000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, analog_bit_r<3>)
 
 	PORT_START("IN3")
 	PORT_BIT( 0x0000ffff, IP_ACTIVE_HIGH, IPT_UNKNOWN )
@@ -868,8 +868,8 @@ static INPUT_PORTS_START( footbpow )
 	PORT_BIT( 0x02000000, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x04000000, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_SERVICE_NO_TOGGLE( 0x08000000, IP_ACTIVE_LOW )
-	PORT_BIT( 0x10000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,fp_analog_bit_r, (void *)1)
-	PORT_BIT( 0x20000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_CUSTOM_MEMBER(DEVICE_SELF, gaelco3d_state,fp_analog_bit_r, (void *)0)
+	PORT_BIT( 0x10000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, fp_analog_bit_r<1>)
+	PORT_BIT( 0x20000000, IP_ACTIVE_HIGH, IPT_CUSTOM) PORT_READ_LINE_MEMBER(gaelco3d_state, fp_analog_bit_r<0>)
 	PORT_BIT( 0xc0000000, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 
 	PORT_START("IN3")
@@ -916,7 +916,7 @@ void gaelco3d_state::gaelco3d(machine_config &config)
 
 	EEPROM_93C66_16BIT(config, m_eeprom, eeprom_serial_streaming::ENABLE);
 
-	config.m_minimum_quantum = attotime::from_hz(6000);
+	config.set_maximum_quantum(attotime::from_hz(6000));
 
 	TIMER(config, "adsp_timer").configure_generic(FUNC(gaelco3d_state::adsp_autobuffer_irq));
 

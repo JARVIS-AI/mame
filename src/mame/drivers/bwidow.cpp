@@ -258,7 +258,7 @@ Typically, only the high 2 bits are read.
 
 */
 
-READ8_MEMBER(bwidow_state::spacduel_IN3_r)
+uint8_t bwidow_state::spacduel_IN3_r(offs_t offset)
 {
 	int res;
 	int res1;
@@ -309,12 +309,12 @@ READ8_MEMBER(bwidow_state::spacduel_IN3_r)
 	return res;
 }
 
-CUSTOM_INPUT_MEMBER(bwidow_state::clock_r)
+READ_LINE_MEMBER(bwidow_state::clock_r)
 {
 	return (m_maincpu->total_cycles() & 0x100) ? 1 : 0;
 }
 
-READ8_MEMBER(bwidow_state::bwidowp_in_r)
+uint8_t bwidow_state::bwidowp_in_r()
 {
 	return (m_in4->read() & 0x0f) | ((m_in3->read() & 0x0f) << 4);
 }
@@ -325,7 +325,7 @@ READ8_MEMBER(bwidow_state::bwidowp_in_r)
  *
  *************************************/
 
-WRITE8_MEMBER(bwidow_state::bwidow_misc_w)
+void bwidow_state::bwidow_misc_w(uint8_t data)
 {
 	/*
 	    0x10 = p1 led
@@ -342,7 +342,7 @@ WRITE8_MEMBER(bwidow_state::bwidow_misc_w)
 	m_lastdata = data;
 }
 
-WRITE8_MEMBER(bwidow_state::spacduel_coin_counter_w)
+void bwidow_state::spacduel_coin_counter_w(uint8_t data)
 {
 	if (data == m_lastdata) return;
 	m_leds[0] = BIT(~data, 5); // start lamp
@@ -362,18 +362,18 @@ WRITE8_MEMBER(bwidow_state::spacduel_coin_counter_w)
  *
  *************************************/
 
-READ8_MEMBER(bwidow_state::earom_read)
+uint8_t bwidow_state::earom_read()
 {
 	return m_earom->data();
 }
 
-WRITE8_MEMBER(bwidow_state::earom_write)
+void bwidow_state::earom_write(offs_t offset, uint8_t data)
 {
 	m_earom->set_address(offset & 0x3f);
 	m_earom->set_data(data);
 }
 
-WRITE8_MEMBER(bwidow_state::earom_control_w)
+void bwidow_state::earom_control_w(uint8_t data)
 {
 	// CK = DB0, C1 = /DB2, C2 = DB1, CS1 = DB3, /CS2 = GND
 	m_earom->set_control(BIT(data, 3), 1, !BIT(data, 2), BIT(data, 1));
@@ -382,7 +382,7 @@ WRITE8_MEMBER(bwidow_state::earom_control_w)
 
 void bwidow_state::machine_reset()
 {
-	earom_control_w(machine().dummy_space(), 0, 0);
+	earom_control_w(0);
 }
 
 
@@ -392,7 +392,7 @@ void bwidow_state::machine_reset()
  *
  *************************************/
 
-WRITE8_MEMBER(bwidow_state::irq_ack_w)
+void bwidow_state::irq_ack_w(uint8_t data)
 {
 	m_maincpu->set_input_line(0, CLEAR_LINE);
 }
@@ -484,9 +484,9 @@ static INPUT_PORTS_START( bwidow )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_SERVICE1 ) PORT_NAME("Diagnostic Step")
 	/* bit 6 is the VG HALT bit. We set it to "low" */
 	/* per default (busy vector processor). */
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER("avg", avg_device, done_r, nullptr)
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("avg", avg_device, done_r)
 	/* bit 7 is tied to a 3kHz clock */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, bwidow_state,clock_r, nullptr)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(bwidow_state, clock_r)
 
 	PORT_START("DSW0")
 	PORT_DIPNAME(0x03, 0x00, DEF_STR( Coinage ) ) PORT_DIPLOCATION("D4:!7,!8")
@@ -562,9 +562,9 @@ static INPUT_PORTS_START( gravitar )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_SERVICE1 ) PORT_NAME("Diagnostic Step")
 	/* bit 6 is the VG HALT bit. We set it to "low" */
 	/* per default (busy vector processor). */
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER("avg", avg_device, done_r, nullptr)
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("avg", avg_device, done_r)
 	/* bit 7 is tied to a 3kHz clock */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, bwidow_state,clock_r, nullptr)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(bwidow_state, clock_r)
 
 	PORT_START("DSW0")
 	PORT_DIPUNUSED_DIPLOC( 0x03, IP_ACTIVE_HIGH, "D4:!7,!8" )
@@ -636,9 +636,9 @@ static INPUT_PORTS_START( lunarbat )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	/* bit 6 is the VG HALT bit. We set it to "low" */
 	/* per default (busy vector processor). */
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER("avg", avg_device, done_r, nullptr)
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("avg", avg_device, done_r)
 	/* bit 7 is tied to a 3kHz clock */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, bwidow_state,clock_r, nullptr)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(bwidow_state, clock_r)
 
 	PORT_START("DSW0")  /* DSW0 - Not read */
 	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNUSED )
@@ -670,9 +670,9 @@ static INPUT_PORTS_START( spacduel )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_SERVICE1 ) PORT_NAME("Diagnostic Step")
 	/* bit 6 is the VG HALT bit. We set it to "low" */
 	/* per default (busy vector processor). */
-	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER("avg", avg_device, done_r, nullptr)
+	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("avg", avg_device, done_r)
 	/* bit 7 is tied to a 3kHz clock */
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(DEVICE_SELF, bwidow_state,clock_r, nullptr)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_MEMBER(bwidow_state, clock_r)
 
 	PORT_START("DSW0")
 	PORT_DIPNAME(0x03, 0x01, DEF_STR( Lives ) ) PORT_DIPLOCATION("D4:!7,!8")

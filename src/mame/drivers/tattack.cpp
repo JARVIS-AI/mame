@@ -3,7 +3,7 @@
 /****************************************************************************
     Time Attacker
 
-    driver by Tomasz Slanina analog[at]op.pl
+    driver by Tomasz Slanina
     improvements by Angelo Salese
 
     Z80A,
@@ -54,6 +54,7 @@
 #include "screen.h"
 #include "sound/samples.h"
 #include "speaker.h"
+#include "tilemap.h"
 
 
 class tattack_state : public driver_device
@@ -77,10 +78,10 @@ protected:
 	virtual void video_start() override;
 
 private:
-	DECLARE_WRITE8_MEMBER(paddle_w);
-	DECLARE_WRITE8_MEMBER(ball_w);
-	DECLARE_WRITE8_MEMBER(brick_dma_w);
-	DECLARE_WRITE8_MEMBER(sound_w);
+	void paddle_w(uint8_t data);
+	void ball_w(offs_t offset, uint8_t data);
+	void brick_dma_w(uint8_t data);
+	void sound_w(uint8_t data);
 
 	TILE_GET_INFO_MEMBER(get_tile_info);
 	void tattack_palette(palette_device &palette) const;
@@ -123,7 +124,7 @@ TILE_GET_INFO_MEMBER(tattack_state::get_tile_info)
 
 	color >>= 1;
 
-	SET_TILE_INFO_MEMBER(0,
+	tileinfo.set(0,
 			code,
 			color,
 			0);
@@ -229,20 +230,20 @@ uint32_t tattack_state::screen_update_tattack(screen_device &screen, bitmap_ind1
 
 void tattack_state::video_start()
 {
-	m_tmap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(tattack_state::get_tile_info),this),TILEMAP_SCAN_ROWS,8,8,32,32 );
+	m_tmap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(tattack_state::get_tile_info)), TILEMAP_SCAN_ROWS, 8,8, 32,32);
 }
 
-WRITE8_MEMBER(tattack_state::paddle_w)
+void tattack_state::paddle_w(uint8_t data)
 {
 	m_paddle_reg = data;
 }
 
-WRITE8_MEMBER(tattack_state::ball_w)
+void tattack_state::ball_w(offs_t offset, uint8_t data)
 {
 	m_ball_regs[offset] = data;
 }
 
-WRITE8_MEMBER(tattack_state::brick_dma_w)
+void tattack_state::brick_dma_w(uint8_t data)
 {
 	// bit 7: 0->1 transfers from RAM to internal video buffer
 	// bit 6: bricks color bank
@@ -256,7 +257,7 @@ WRITE8_MEMBER(tattack_state::brick_dma_w)
 //  popmessage("%02x",data&0x7f);
 }
 
-WRITE8_MEMBER(tattack_state::sound_w)
+void tattack_state::sound_w(uint8_t data)
 {
 	// bit 4 enabled on coin insertion (coin counter?)
 	// bit 3-0 samples enable, @see tattack_sample_names

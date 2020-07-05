@@ -64,7 +64,7 @@ private:
 	required_device<palette_device> m_palette;
 	required_device<gfxdecode_device> m_gfxdecode;
 
-	DECLARE_WRITE8_MEMBER(output_w);
+	void output_w(uint8_t data);
 	TIMER_DEVICE_CALLBACK_MEMBER(scanline);
 	uint8_t m_fg_tilebank;
 	bool m_rowscroll_enable;
@@ -164,7 +164,7 @@ uint32_t metlfrzr_state::screen_update_metlfrzr(screen_device &screen, bitmap_in
 	return 0;
 }
 
-WRITE8_MEMBER(metlfrzr_state::output_w)
+void metlfrzr_state::output_w(uint8_t data)
 {
 	// bit 7: flip screen
 	// bit 6-5: coin lockouts
@@ -359,11 +359,11 @@ TIMER_DEVICE_CALLBACK_MEMBER(metlfrzr_state::scanline)
 	int scanline = param;
 
 	if(scanline == 240) // vblank-out irq
-		m_maincpu->set_input_line_and_vector(0, HOLD_LINE,0x10); /* Z80 - RST 10h */
+		m_maincpu->set_input_line_and_vector(0, HOLD_LINE,0xd7); /* Z80 - RST 10h */
 
 	// TODO: check this irq.
 	if(scanline == 0) // vblank-in irq
-		m_maincpu->set_input_line_and_vector(0, HOLD_LINE,0x08); /* Z80 - RST 08h */
+		m_maincpu->set_input_line_and_vector(0, HOLD_LINE,0xcf); /* Z80 - RST 08h */
 }
 
 void metlfrzr_state::metlfrzr(machine_config &config)

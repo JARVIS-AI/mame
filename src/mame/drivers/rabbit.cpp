@@ -86,6 +86,7 @@ Custom: Imagetek I5000 (2ch video & 2ch sound)
 #include "emupal.h"
 #include "screen.h"
 #include "speaker.h"
+#include "tilemap.h"
 
 
 class rabbit_state : public driver_device
@@ -118,18 +119,18 @@ public:
 	void init_rabbit();
 
 private:
-	DECLARE_WRITE32_MEMBER(tilemap0_w);
-	DECLARE_WRITE32_MEMBER(tilemap1_w);
-	DECLARE_WRITE32_MEMBER(tilemap2_w);
-	DECLARE_WRITE32_MEMBER(tilemap3_w);
-	DECLARE_READ32_MEMBER(tilemap0_r);
-	DECLARE_READ32_MEMBER(tilemap1_r);
-	DECLARE_READ32_MEMBER(tilemap2_r);
-	DECLARE_READ32_MEMBER(tilemap3_r);
-	DECLARE_READ32_MEMBER(randomrabbits);
-	DECLARE_WRITE32_MEMBER(rombank_w);
-	DECLARE_WRITE32_MEMBER(blitter_w);
-	DECLARE_WRITE32_MEMBER(eeprom_write);
+	void tilemap0_w(offs_t offset, uint32_t data, uint32_t mem_mask = ~0);
+	void tilemap1_w(offs_t offset, uint32_t data, uint32_t mem_mask = ~0);
+	void tilemap2_w(offs_t offset, uint32_t data, uint32_t mem_mask = ~0);
+	void tilemap3_w(offs_t offset, uint32_t data, uint32_t mem_mask = ~0);
+	uint32_t tilemap0_r(offs_t offset);
+	uint32_t tilemap1_r(offs_t offset);
+	uint32_t tilemap2_r(offs_t offset);
+	uint32_t tilemap3_r(offs_t offset);
+	uint32_t randomrabbits();
+	void rombank_w(uint32_t data);
+	void blitter_w(offs_t offset, uint32_t data, uint32_t mem_mask = ~0);
+	void eeprom_write(offs_t offset, uint32_t data, uint32_t mem_mask = ~0);
 
 	void rabbit_map(address_map &map);
 
@@ -226,7 +227,7 @@ void rabbit_state::get_tilemap_info(tile_data &tileinfo, int tile_index, int whi
 		colour &= 0x0f;
 		colour += 0x20;
 		tileinfo.group = 1;
-		SET_TILE_INFO_MEMBER(6+tilesize,tileno,colour,TILE_FLIPXY(flipxy));
+		tileinfo.set(6+tilesize,tileno,colour,TILE_FLIPXY(flipxy));
 	}
 	else
 	{
@@ -234,7 +235,7 @@ void rabbit_state::get_tilemap_info(tile_data &tileinfo, int tile_index, int whi
 		if (cmask) colour&=0x3f; // see health bars
 		colour += 0x200;
 		tileinfo.group = 0;
-		SET_TILE_INFO_MEMBER(4+tilesize,tileno,colour,TILE_FLIPXY(flipxy));
+		tileinfo.set(4+tilesize,tileno,colour,TILE_FLIPXY(flipxy));
 	}
 }
 
@@ -258,26 +259,26 @@ TILE_GET_INFO_MEMBER(rabbit_state::get_tilemap3_tile_info)
 	get_tilemap_info(tileinfo,tile_index,3,0);
 }
 
-WRITE32_MEMBER(rabbit_state::tilemap0_w)
+void rabbit_state::tilemap0_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	COMBINE_DATA(&m_tilemap_ram[0][offset]);
 	m_tilemap[0]->mark_tile_dirty(offset);
 }
 
-WRITE32_MEMBER(rabbit_state::tilemap1_w)
+void rabbit_state::tilemap1_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	COMBINE_DATA(&m_tilemap_ram[1][offset]);
 	m_tilemap[1]->mark_tile_dirty(offset);
 }
 
-WRITE32_MEMBER(rabbit_state::tilemap2_w)
+void rabbit_state::tilemap2_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	COMBINE_DATA(&m_tilemap_ram[2][offset]);
 	m_tilemap[2]->mark_tile_dirty(offset);
 }
 
 
-WRITE32_MEMBER(rabbit_state::tilemap3_w)
+void rabbit_state::tilemap3_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	COMBINE_DATA(&m_tilemap_ram[3][offset]);
 	m_tilemap[3]->mark_tile_dirty(offset);
@@ -425,10 +426,10 @@ void rabbit_state::video_start()
 	m_tilemap_ram[2] = make_unique_clear<uint32_t[]>(0x20000/4);
 	m_tilemap_ram[3] = make_unique_clear<uint32_t[]>(0x20000/4);
 
-	m_tilemap[0] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(rabbit_state::get_tilemap0_tile_info),this),TILEMAP_SCAN_ROWS,16, 16, 128,32);
-	m_tilemap[1] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(rabbit_state::get_tilemap1_tile_info),this),TILEMAP_SCAN_ROWS,16, 16, 128,32);
-	m_tilemap[2] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(rabbit_state::get_tilemap2_tile_info),this),TILEMAP_SCAN_ROWS,16, 16, 128,32);
-	m_tilemap[3] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(FUNC(rabbit_state::get_tilemap3_tile_info),this),TILEMAP_SCAN_ROWS, 8,  8, 128,32);
+	m_tilemap[0] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(rabbit_state::get_tilemap0_tile_info)), TILEMAP_SCAN_ROWS, 16, 16, 128, 32);
+	m_tilemap[1] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(rabbit_state::get_tilemap1_tile_info)), TILEMAP_SCAN_ROWS, 16, 16, 128, 32);
+	m_tilemap[2] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(rabbit_state::get_tilemap2_tile_info)), TILEMAP_SCAN_ROWS, 16, 16, 128, 32);
+	m_tilemap[3] = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(rabbit_state::get_tilemap3_tile_info)), TILEMAP_SCAN_ROWS,  8,  8, 128, 32);
 
 	/* the tilemaps mix 4bpp and 8bbp tiles, we split these into 2 groups, and set a different transpen for each group */
 	m_tilemap[0]->map_pen_to_layer(0, 15,  TILEMAP_PIXEL_TRANSPARENT);
@@ -536,33 +537,33 @@ uint32_t rabbit_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap
 
 
 
-READ32_MEMBER(rabbit_state::tilemap0_r)
+uint32_t rabbit_state::tilemap0_r(offs_t offset)
 {
 	return m_tilemap_ram[0][offset];
 }
 
-READ32_MEMBER(rabbit_state::tilemap1_r)
+uint32_t rabbit_state::tilemap1_r(offs_t offset)
 {
 	return m_tilemap_ram[1][offset];
 }
 
-READ32_MEMBER(rabbit_state::tilemap2_r)
+uint32_t rabbit_state::tilemap2_r(offs_t offset)
 {
 	return m_tilemap_ram[2][offset];
 }
 
-READ32_MEMBER(rabbit_state::tilemap3_r)
+uint32_t rabbit_state::tilemap3_r(offs_t offset)
 {
 	return m_tilemap_ram[3][offset];
 }
 
-READ32_MEMBER(rabbit_state::randomrabbits)
+uint32_t rabbit_state::randomrabbits()
 {
 	return machine().rand();
 }
 
 /* rom bank is used when testing roms, not currently hooked up */
-WRITE32_MEMBER(rabbit_state::rombank_w)
+void rabbit_state::rombank_w(uint32_t data)
 {
 	uint8_t *dataroms = memregion("gfx1")->base();
 #if 0
@@ -589,7 +590,7 @@ void rabbit_state::device_timer(emu_timer &timer, device_timer_id id, int param,
 		m_maincpu->set_input_line(m_bltirqlevel, HOLD_LINE);
 		break;
 	default:
-		assert_always(false, "Unknown id in rabbit_state::device_timer");
+		throw emu_fatalerror("Unknown id in rabbit_state::device_timer");
 	}
 }
 
@@ -688,7 +689,7 @@ void rabbit_state::do_blit()
 
 
 
-WRITE32_MEMBER(rabbit_state::blitter_w)
+void rabbit_state::blitter_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	COMBINE_DATA(&m_blitterregs[offset]);
 
@@ -698,7 +699,7 @@ WRITE32_MEMBER(rabbit_state::blitter_w)
 	}
 }
 
-WRITE32_MEMBER(rabbit_state::eeprom_write)
+void rabbit_state::eeprom_write(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	// don't disturb the EEPROM if we're not actually writing to it
 	// (in particular, data & 0x100 here with mask = ffff00ff looks to be the watchdog)

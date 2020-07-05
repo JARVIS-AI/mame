@@ -1260,6 +1260,12 @@ INPUT_PORTS_START( sadari )
 	PORT_DIPNAME( 0x40, 0x40, "Girl Show Point" )       PORT_DIPLOCATION("SWB:7")
 	PORT_DIPSETTING(    0x40, "Other Country" )
 	PORT_DIPSETTING(    0x00, DEF_STR( Asia ) )
+
+	PORT_MODIFY("P1")
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_PLAYER(1)
+
+	PORT_MODIFY("P2")
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_PLAYER(2)
 INPUT_PORTS_END
 
 INPUT_PORTS_START( primella )
@@ -1434,12 +1440,12 @@ u8 dooyong_z80_ym2203_state::unk_r()
 	return 0;
 }
 
+
 /***************************************************************************
 
     Machine driver(s)
 
 ***************************************************************************/
-
 
 void dooyong_z80_ym2203_state::sound_2203(machine_config &config)
 {
@@ -1641,15 +1647,15 @@ void dooyong_z80_state::bluehawk(machine_config &config)
 	PALETTE(config, m_palette).set_format(palette_device::xRGB_555, 1024);
 
 	DOOYONG_ROM_TILEMAP(config, m_bg[0], m_gfxdecode, 2, "bg0", 0x3c000, 0x4000);
-	m_bg[0]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(dooyong_z80_state::bluehawk_tile_callback), this));
+	m_bg[0]->set_tile_callback(FUNC(dooyong_z80_state::bluehawk_tile_callback));
 
 	DOOYONG_ROM_TILEMAP(config, m_fg[0], m_gfxdecode, 3, "fg0", 0x3c000, 0x4000);
 	m_fg[0]->set_transparent_pen(15);
-	m_fg[0]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(dooyong_z80_state::bluehawk_tile_callback), this));
+	m_fg[0]->set_tile_callback(FUNC(dooyong_z80_state::bluehawk_tile_callback));
 
 	DOOYONG_ROM_TILEMAP(config, m_fg[1], m_gfxdecode, 4, "fg1", 0x1c000, 0x4000);
 	m_fg[1]->set_transparent_pen(15);
-	m_fg[1]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(dooyong_z80_state::bluehawk_tile_callback), this));
+	m_fg[1]->set_tile_callback(FUNC(dooyong_z80_state::bluehawk_tile_callback));
 
 	DOOYONG_RAM_TILEMAP(config, m_tx, m_gfxdecode, 0);
 
@@ -1722,11 +1728,11 @@ void dooyong_z80_state::primella(machine_config &config)
 	PALETTE(config, m_palette).set_format(palette_device::xRGB_555, 1024);
 
 	DOOYONG_ROM_TILEMAP(config, m_bg[0], m_gfxdecode, 1, "bg0", -0x4000, 0x4000);
-	m_bg[0]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(dooyong_z80_state::bluehawk_tile_callback), this));
+	m_bg[0]->set_tile_callback(FUNC(dooyong_z80_state::bluehawk_tile_callback));
 
 	DOOYONG_ROM_TILEMAP(config, m_fg[0], m_gfxdecode, 2, "fg0", -0x4000, 0x4000);
 	m_fg[0]->set_transparent_pen(15);
-	m_fg[0]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(dooyong_z80_state::bluehawk_tile_callback), this));
+	m_fg[0]->set_tile_callback(FUNC(dooyong_z80_state::bluehawk_tile_callback));
 
 	DOOYONG_RAM_TILEMAP(config, m_tx, m_gfxdecode, 0);
 
@@ -1774,19 +1780,19 @@ void rshark_state::dooyong_68k(machine_config &config)
 	PALETTE(config, m_palette).set_format(palette_device::xRGB_555, 2048);
 
 	RSHARK_ROM_TILEMAP(config, m_bg[0], m_gfxdecode, 4, "bg0", 0x00000, 0x20000, "tmap_hi", 0x60000, 0x20000);
-	m_bg[0]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(rshark_state::rshark_tile_callback), this));
+	m_bg[0]->set_tile_callback(FUNC(rshark_state::rshark_tile_callback));
 
 	RSHARK_ROM_TILEMAP(config, m_bg[1], m_gfxdecode, 3, "bg1", 0x00000, 0x20000, "tmap_hi", 0x40000, 0x20000);
 	m_bg[1]->set_transparent_pen(15);
-	m_bg[1]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(rshark_state::rshark_tile_callback), this));
+	m_bg[1]->set_tile_callback(FUNC(rshark_state::rshark_tile_callback));
 
 	RSHARK_ROM_TILEMAP(config, m_fg[0], m_gfxdecode, 2, "fg0", 0x00000, 0x20000, "tmap_hi", 0x20000, 0x20000);
 	m_fg[0]->set_transparent_pen(15);
-	m_fg[0]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(rshark_state::rshark_tile_callback), this));
+	m_fg[0]->set_tile_callback(FUNC(rshark_state::rshark_tile_callback));
 
 	RSHARK_ROM_TILEMAP(config, m_fg[1], m_gfxdecode, 1, "fg1", 0x00000, 0x20000, "tmap_hi", 0x00000, 0x20000);
 	m_fg[1]->set_transparent_pen(15);
-	m_fg[1]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(rshark_state::rshark_tile_callback), this));
+	m_fg[1]->set_tile_callback(FUNC(rshark_state::rshark_tile_callback));
 
 	// sound hardware
 	sound_2151_4mhz(config);
@@ -1832,10 +1838,10 @@ void popbingo_state::popbingo(machine_config &config)
 	PALETTE(config, m_palette).set_format(palette_device::xRGB_555, 2048);
 
 	DOOYONG_ROM_TILEMAP(config, m_bg[0], m_gfxdecode, 1, "bg0", 0x00000, 0x4000);
-	m_bg[0]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(popbingo_state::popbingo_tile_callback), this));
+	m_bg[0]->set_tile_callback(FUNC(popbingo_state::popbingo_tile_callback));
 
 	DOOYONG_ROM_TILEMAP(config, m_bg[1], m_gfxdecode, 2, "bg1", 0x00000, 0x4000);
-	m_bg[1]->set_tile_callback(dooyong_rom_tilemap_device::dooyong_tmap_cb_delegate(FUNC(popbingo_state::popbingo_tile_callback), this));
+	m_bg[1]->set_tile_callback(FUNC(popbingo_state::popbingo_tile_callback));
 
 	// sound hardware
 	sound_2151_4mhz(config);

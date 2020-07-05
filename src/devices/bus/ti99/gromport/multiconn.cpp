@@ -181,7 +181,7 @@ WRITE_LINE_MEMBER(ti99_multi_cart_conn_device::gclock_in)
 	}
 }
 
-READ8Z_MEMBER(ti99_multi_cart_conn_device::readz)
+void ti99_multi_cart_conn_device::readz(offs_t offset, uint8_t *value)
 {
 	int slot = get_active_slot(true, offset);
 
@@ -237,7 +237,7 @@ void ti99_multi_cart_conn_device::write(offs_t offset, uint8_t data)
 	}
 }
 
-READ8Z_MEMBER(ti99_multi_cart_conn_device::crureadz)
+void ti99_multi_cart_conn_device::crureadz(offs_t offset, uint8_t *value)
 {
 	int slot = get_active_slot(false, offset);
 	/* Sanity check. Higher slots are always empty. */
@@ -311,7 +311,7 @@ void ti99_multi_cart_conn_device::device_add_mconfig(machine_config &config)
 
 INPUT_CHANGED_MEMBER( ti99_multi_cart_conn_device::switch_changed )
 {
-	LOGMASKED(LOG_CHANGE, "Slot changed %d - %d\n", (int)((uint64_t)param & 0x07), newval);
+	LOGMASKED(LOG_CHANGE, "Slot changed %d - %d\n", (int)(param & 0x07), newval);
 	m_active_slot = m_fixed_slot = newval - 1;
 }
 

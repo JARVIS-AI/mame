@@ -65,7 +65,7 @@ void samcoupe_state::device_timer(emu_timer &timer, device_timer_id id, int para
 		sam_video_update_callback(ptr, param);
 		break;
 	default:
-		assert_always(false, "Unknown id in samcoupe_state::device_timer");
+		throw emu_fatalerror("Unknown id in samcoupe_state::device_timer");
 	}
 }
 
@@ -73,7 +73,7 @@ void samcoupe_state::device_timer(emu_timer &timer, device_timer_id id, int para
     I/O PORTS
 ***************************************************************************/
 
-READ8_MEMBER(samcoupe_state::samcoupe_disk_r)
+uint8_t samcoupe_state::samcoupe_disk_r(offs_t offset)
 {
 	/* drive and side is encoded into bit 5 and 3 */
 	floppy_connector *con = (BIT(offset, 4) ? m_wd1772_1 : m_wd1772_0);
@@ -87,7 +87,7 @@ READ8_MEMBER(samcoupe_state::samcoupe_disk_r)
 	return m_fdc->read(offset & 0x03);
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_disk_w)
+void samcoupe_state::samcoupe_disk_w(offs_t offset, uint8_t data)
 {
 	/* drive and side is encoded into bit 5 and 3 */
 	floppy_connector *con = (BIT(offset, 4) ? m_wd1772_1 : m_wd1772_0);
@@ -101,7 +101,7 @@ WRITE8_MEMBER(samcoupe_state::samcoupe_disk_w)
 	return m_fdc->write(offset & 0x03, data);
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_pen_r)
+uint8_t samcoupe_state::samcoupe_pen_r(offs_t offset)
 {
 	uint8_t data;
 
@@ -124,12 +124,12 @@ READ8_MEMBER(samcoupe_state::samcoupe_pen_r)
 	return data;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_clut_w)
+void samcoupe_state::samcoupe_clut_w(offs_t offset, uint8_t data)
 {
 	m_clut[(offset >> 8) & 0x0f] = data & 0x7f;
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_status_r)
+uint8_t samcoupe_state::samcoupe_status_r(offs_t offset)
 {
 	uint8_t data = 0xe0;
 
@@ -149,17 +149,17 @@ READ8_MEMBER(samcoupe_state::samcoupe_status_r)
 	return data;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_line_int_w)
+void samcoupe_state::samcoupe_line_int_w(uint8_t data)
 {
 	m_line_int = data;
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_lmpr_r)
+uint8_t samcoupe_state::samcoupe_lmpr_r()
 {
 	return m_lmpr;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_lmpr_w)
+void samcoupe_state::samcoupe_lmpr_w(uint8_t data)
 {
 	address_space &space_program = m_maincpu->space(AS_PROGRAM);
 
@@ -167,12 +167,12 @@ WRITE8_MEMBER(samcoupe_state::samcoupe_lmpr_w)
 	samcoupe_update_memory(space_program);
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_hmpr_r)
+uint8_t samcoupe_state::samcoupe_hmpr_r()
 {
 	return m_hmpr;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_hmpr_w)
+void samcoupe_state::samcoupe_hmpr_w(uint8_t data)
 {
 	address_space &space_program = m_maincpu->space(AS_PROGRAM);
 
@@ -180,12 +180,12 @@ WRITE8_MEMBER(samcoupe_state::samcoupe_hmpr_w)
 	samcoupe_update_memory(space_program);
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_vmpr_r)
+uint8_t samcoupe_state::samcoupe_vmpr_r()
 {
 	return m_vmpr;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_vmpr_w)
+void samcoupe_state::samcoupe_vmpr_w(uint8_t data)
 {
 	address_space &space_program = m_maincpu->space(AS_PROGRAM);
 
@@ -193,18 +193,18 @@ WRITE8_MEMBER(samcoupe_state::samcoupe_vmpr_w)
 	samcoupe_update_memory(space_program);
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_midi_r)
+uint8_t samcoupe_state::samcoupe_midi_r()
 {
 	logerror("%s: read from midi port\n", machine().describe_context());
 	return 0xff;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_midi_w)
+void samcoupe_state::samcoupe_midi_w(uint8_t data)
 {
 	logerror("%s: write to midi port: 0x%02x\n", machine().describe_context(), data);
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_keyboard_r)
+uint8_t samcoupe_state::samcoupe_keyboard_r(offs_t offset)
 {
 	uint8_t data = 0x1f;
 
@@ -236,10 +236,14 @@ READ8_MEMBER(samcoupe_state::samcoupe_keyboard_r)
 	/* bit 7, external memory */
 	data |= 1 << 7;
 
+	/* joysticks */
+	if (!BIT(offset, 12)) data &= m_joy1->read() | (0xff ^ 0x1f);
+	if (!BIT(offset, 11)) data &= m_joy2->read() | (0xff ^ 0x1f);
+
 	return data;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_border_w)
+void samcoupe_state::samcoupe_border_w(uint8_t data)
 {
 	m_border = data;
 
@@ -250,7 +254,7 @@ WRITE8_MEMBER(samcoupe_state::samcoupe_border_w)
 	m_speaker->level_w(BIT(data, 4));
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_attributes_r)
+uint8_t samcoupe_state::samcoupe_attributes_r()
 {
 	return m_attribute;
 }
@@ -260,12 +264,12 @@ WRITE_LINE_MEMBER(samcoupe_state::write_lpt1_busy)
 	m_lpt1_busy = state;
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_lpt1_busy_r)
+uint8_t samcoupe_state::samcoupe_lpt1_busy_r()
 {
 	return m_lpt1_busy;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_lpt1_strobe_w)
+void samcoupe_state::samcoupe_lpt1_strobe_w(uint8_t data)
 {
 	m_lpt1->write_strobe(data & 1);
 }
@@ -275,12 +279,12 @@ DECLARE_WRITE_LINE_MEMBER(samcoupe_state::write_lpt2_busy)
 	m_lpt2_busy = state;
 }
 
-READ8_MEMBER(samcoupe_state::samcoupe_lpt2_busy_r)
+uint8_t samcoupe_state::samcoupe_lpt2_busy_r()
 {
 	return m_lpt2_busy;
 }
 
-WRITE8_MEMBER(samcoupe_state::samcoupe_lpt2_strobe_w)
+void samcoupe_state::samcoupe_lpt2_strobe_w(uint8_t data)
 {
 	m_lpt2->write_strobe(data & 1);
 }
@@ -291,19 +295,19 @@ WRITE8_MEMBER(samcoupe_state::samcoupe_lpt2_strobe_w)
 
 void samcoupe_state::samcoupe_mem(address_map &map)
 {
-	map(0x0000, 0x3fff).ram().rw(FUNC(samcoupe_state::sam_bank1_r), FUNC(samcoupe_state::sam_bank1_w)); // AM_RAMBANK("bank1")
-	map(0x4000, 0x7fff).ram().rw(FUNC(samcoupe_state::sam_bank2_r), FUNC(samcoupe_state::sam_bank2_w)); // AM_RAMBANK("bank2")
-	map(0x8000, 0xbfff).ram().rw(FUNC(samcoupe_state::sam_bank3_r), FUNC(samcoupe_state::sam_bank3_w)); // AM_RAMBANK("bank3")
-	map(0xc000, 0xffff).ram().rw(FUNC(samcoupe_state::sam_bank4_r), FUNC(samcoupe_state::sam_bank4_w)); // AM_RAMBANK("bank4")
+	map(0x0000, 0x3fff).ram().rw(FUNC(samcoupe_state::sam_bank1_r), FUNC(samcoupe_state::sam_bank1_w)); // .bankrw("bank1");
+	map(0x4000, 0x7fff).ram().rw(FUNC(samcoupe_state::sam_bank2_r), FUNC(samcoupe_state::sam_bank2_w)); // .bankrw("bank2");
+	map(0x8000, 0xbfff).ram().rw(FUNC(samcoupe_state::sam_bank3_r), FUNC(samcoupe_state::sam_bank3_w)); // .bankrw("bank3");
+	map(0xc000, 0xffff).ram().rw(FUNC(samcoupe_state::sam_bank4_r), FUNC(samcoupe_state::sam_bank4_w)); // .bankrw("bank4");
 }
 
 void samcoupe_state::samcoupe_io(address_map &map)
 {
 	map(0x0080, 0x0081).select(0xff00).w(FUNC(samcoupe_state::samcoupe_ext_mem_w));
 	map(0x00e0, 0x00e7).select(0xff10).rw(FUNC(samcoupe_state::samcoupe_disk_r), FUNC(samcoupe_state::samcoupe_disk_w));
-	map(0x00e8, 0x00e8).select(0xff00).w("lpt1_data_out", FUNC(output_latch_device::bus_w));
+	map(0x00e8, 0x00e8).select(0xff00).w("lpt1_data_out", FUNC(output_latch_device::write));
 	map(0x00e9, 0x00e9).select(0xff00).rw(FUNC(samcoupe_state::samcoupe_lpt1_busy_r), FUNC(samcoupe_state::samcoupe_lpt1_strobe_w));
-	map(0x00ea, 0x00ea).select(0xff00).w("lpt2_data_out", FUNC(output_latch_device::bus_w));
+	map(0x00ea, 0x00ea).select(0xff00).w("lpt2_data_out", FUNC(output_latch_device::write));
 	map(0x00eb, 0x00eb).select(0xff00).rw(FUNC(samcoupe_state::samcoupe_lpt2_busy_r), FUNC(samcoupe_state::samcoupe_lpt2_strobe_w));
 	map(0x00f8, 0x00f8).select(0xff00).rw(FUNC(samcoupe_state::samcoupe_pen_r), FUNC(samcoupe_state::samcoupe_clut_w));
 	map(0x00f9, 0x00f9).select(0xff00).rw(FUNC(samcoupe_state::samcoupe_status_r), FUNC(samcoupe_state::samcoupe_line_int_w));
@@ -458,6 +462,24 @@ static INPUT_PORTS_START( samcoupe )
 	PORT_CONFNAME(0x01, 0x00, "Real Time Clock")
 	PORT_CONFSETTING(   0x00, DEF_STR(None))
 	PORT_CONFSETTING(   0x01, "SAMBUS")
+
+	/* Sam Coupe has single 9-pin ATARI-compatible connector but supports 2 joysticks via a splitter,
+	   this works by using a different ground for each stick (pin 8: stick 1 gnd, pin 9: stick 2 gnd.)
+	   Joysticks overlay number keys 6-0 for the stick 1 and 1-5 for stick 2 (same scheme as ZX Spectrum) */
+
+	PORT_START("joy_1")
+	PORT_BIT(0x01, IP_ACTIVE_LOW, IPT_BUTTON1)        PORT_PLAYER(1)
+	PORT_BIT(0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_UP)    PORT_8WAY PORT_PLAYER(1)
+	PORT_BIT(0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN)  PORT_8WAY PORT_PLAYER(1)
+	PORT_BIT(0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT) PORT_8WAY PORT_PLAYER(1)
+	PORT_BIT(0x10, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT)  PORT_8WAY PORT_PLAYER(1)
+
+	PORT_START("joy_2")
+	PORT_BIT(0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT)  PORT_8WAY PORT_PLAYER(2)
+	PORT_BIT(0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT) PORT_8WAY PORT_PLAYER(2)
+	PORT_BIT(0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN)  PORT_8WAY PORT_PLAYER(2)
+	PORT_BIT(0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP)    PORT_8WAY PORT_PLAYER(2)
+	PORT_BIT(0x10, IP_ACTIVE_LOW, IPT_BUTTON1)        PORT_PLAYER(2)
 INPUT_PORTS_END
 
 
@@ -543,8 +565,8 @@ void samcoupe_state::samcoupe(machine_config &config)
 	SOFTWARE_LIST(config, "cass_list").set_original("samcoupe_cass");
 
 	WD1772(config, m_fdc, SAMCOUPE_XTAL_X1/3);
-	FLOPPY_CONNECTOR(config, "wd1772:0", samcoupe_floppies, "35dd", samcoupe_state::floppy_formats);
-	FLOPPY_CONNECTOR(config, "wd1772:1", samcoupe_floppies, "35dd", samcoupe_state::floppy_formats);
+	FLOPPY_CONNECTOR(config, "wd1772:0", samcoupe_floppies, "35dd", samcoupe_state::floppy_formats).enable_sound(true);
+	FLOPPY_CONNECTOR(config, "wd1772:1", samcoupe_floppies, "35dd", samcoupe_state::floppy_formats).enable_sound(true);
 	SOFTWARE_LIST(config, "flop_list").set_original("samcoupe_flop");
 
 	/* internal ram */

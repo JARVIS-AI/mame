@@ -48,7 +48,7 @@ public:
 		m_inputs(*this, "IN.%u", 0)
 	{ }
 
-	// machine drivers
+	// machine configs
 	void master(machine_config &config);
 
 	void init_master();
@@ -93,7 +93,7 @@ void master_state::machine_start()
 
 
 /******************************************************************************
-    Devices, I/O
+    I/O
 ******************************************************************************/
 
 // TTL/generic
@@ -117,8 +117,11 @@ u8 master_state::input_r()
 	u8 data = 0;
 
 	// d0-d7: multiplexed inputs
+	// read chessboard sensors
 	if (m_inp_mux < 8)
 		data = m_board->read_file(m_inp_mux, true);
+
+	// read other buttons
 	else if (m_inp_mux < 10)
 		data = m_inputs[m_inp_mux - 8]->read();
 
@@ -212,7 +215,7 @@ INPUT_PORTS_END
 
 
 /******************************************************************************
-    Machine Drivers
+    Machine Configs
 ******************************************************************************/
 
 void master_state::master(machine_config &config)

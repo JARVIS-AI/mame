@@ -110,7 +110,7 @@ void nubus_device::add_nubus_card(device_nubus_card_interface *card)
 	m_device_list.append(*card);
 }
 
-void nubus_device::install_device(offs_t start, offs_t end, read8_delegate rhandler, write8_delegate whandler, uint32_t mask)
+template<typename R, typename W> void nubus_device::install_device(offs_t start, offs_t end, R rhandler, W whandler, uint32_t mask)
 {
 	int buswidth = m_space->data_width();
 	switch(buswidth)
@@ -126,37 +126,18 @@ void nubus_device::install_device(offs_t start, offs_t end, read8_delegate rhand
 	}
 }
 
-void nubus_device::install_device(offs_t start, offs_t end, read16_delegate rhandler, write16_delegate whandler, uint32_t mask)
-{
-	int buswidth = m_space->data_width();
-	switch(buswidth)
-	{
-		case 32:
-			m_space->install_readwrite_handler(start, end, rhandler, whandler, mask);
-			break;
-		case 64:
-			m_space->install_readwrite_handler(start, end, rhandler, whandler, ((uint64_t)mask<<32)|mask);
-			break;
-		default:
-			fatalerror("NUBUS: Bus width %d not supported\n", buswidth);
-	}
-}
-
-void nubus_device::install_device(offs_t start, offs_t end, read32_delegate rhandler, write32_delegate whandler, uint32_t mask)
-{
-	int buswidth = m_space->data_width();
-	switch(buswidth)
-	{
-		case 32:
-			m_space->install_readwrite_handler(start, end, rhandler, whandler, mask);
-			break;
-		case 64:
-			m_space->install_readwrite_handler(start, end, rhandler, whandler, ((uint64_t)mask<<32)|mask);
-			break;
-		default:
-			fatalerror("NUBUS: Bus width %d not supported\n", buswidth);
-	}
-}
+template void nubus_device::install_device<read8_delegate,     write8_delegate    >(offs_t start, offs_t end, read8_delegate rhandler,     write8_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read8s_delegate,    write8s_delegate   >(offs_t start, offs_t end, read8s_delegate rhandler,    write8s_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read8sm_delegate,   write8sm_delegate  >(offs_t start, offs_t end, read8sm_delegate rhandler,   write8sm_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read8smo_delegate,  write8smo_delegate >(offs_t start, offs_t end, read8smo_delegate rhandler,  write8smo_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read16_delegate,    write16_delegate   >(offs_t start, offs_t end, read16_delegate rhandler,    write16_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read16s_delegate,   write16s_delegate  >(offs_t start, offs_t end, read16s_delegate rhandler,   write16s_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read16sm_delegate,  write16sm_delegate >(offs_t start, offs_t end, read16sm_delegate rhandler,  write16sm_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read16smo_delegate, write16smo_delegate>(offs_t start, offs_t end, read16smo_delegate rhandler, write16smo_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read32_delegate,    write32_delegate   >(offs_t start, offs_t end, read32_delegate rhandler,    write32_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read32s_delegate,   write32s_delegate  >(offs_t start, offs_t end, read32s_delegate rhandler,   write32s_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read32sm_delegate,  write32sm_delegate >(offs_t start, offs_t end, read32sm_delegate rhandler,  write32sm_delegate whandler, uint32_t mask);
+template void nubus_device::install_device<read32smo_delegate, write32smo_delegate>(offs_t start, offs_t end, read32smo_delegate rhandler, write32smo_delegate whandler, uint32_t mask);
 
 void nubus_device::install_readonly_device(offs_t start, offs_t end, read32_delegate rhandler, uint32_t mask)
 {
@@ -232,7 +213,7 @@ WRITE_LINE_MEMBER( nubus_device::irqe_w ) { m_out_irqe_cb(state); }
 //-------------------------------------------------
 
 device_nubus_card_interface::device_nubus_card_interface(const machine_config &mconfig, device_t &device)
-	: device_slot_card_interface(mconfig, device),
+	: device_interface(device, "nubus"),
 		m_nubus(nullptr),
 		m_nubus_tag(nullptr), m_nubus_slottag(nullptr), m_slot(0), m_next(nullptr)
 {

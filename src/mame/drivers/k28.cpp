@@ -73,11 +73,11 @@ private:
 	int m_speech_strobe;
 	u64 m_vfd_data;
 
-	DECLARE_WRITE64_MEMBER(vfd_output_w);
-	DECLARE_WRITE8_MEMBER(mcu_p0_w);
-	DECLARE_READ8_MEMBER(mcu_p1_r);
-	DECLARE_READ8_MEMBER(mcu_p2_r);
-	DECLARE_WRITE8_MEMBER(mcu_p2_w);
+	void vfd_output_w(u64 data);
+	void mcu_p0_w(u8 data);
+	u8 mcu_p1_r();
+	u8 mcu_p2_r();
+	void mcu_p2_w(u8 data);
 
 	void power_off();
 };
@@ -126,12 +126,12 @@ void k28_state::power_off()
 
 
 /******************************************************************************
-    Devices, I/O
+    I/O
 ******************************************************************************/
 
 // MM5445 VFD
 
-WRITE64_MEMBER(k28_state::vfd_output_w)
+void k28_state::vfd_output_w(u64 data)
 {
 	// O1-O16: digit segment data
 	// O17-O25: digit select
@@ -147,7 +147,7 @@ WRITE64_MEMBER(k28_state::vfd_output_w)
 
 // I8021 ports
 
-WRITE8_MEMBER(k28_state::mcu_p0_w)
+void k28_state::mcu_p0_w(u8 data)
 {
 	// d0,d1: phoneme high bits
 	// d0-d2: input mux high bits
@@ -173,7 +173,7 @@ WRITE8_MEMBER(k28_state::mcu_p0_w)
 	m_tms6100->clk_w(0);
 }
 
-READ8_MEMBER(k28_state::mcu_p1_r)
+u8 k28_state::mcu_p1_r()
 {
 	u8 data = 0;
 
@@ -191,19 +191,19 @@ READ8_MEMBER(k28_state::mcu_p1_r)
 	return data ^ 0xff;
 }
 
-READ8_MEMBER(k28_state::mcu_p2_r)
+u8 k28_state::mcu_p2_r()
 {
 	// d3: VSM data
 	return (m_tms6100->data_line_r()) ? 8 : 0;
 }
 
-WRITE8_MEMBER(k28_state::mcu_p2_w)
+void k28_state::mcu_p2_w(u8 data)
 {
 	// d0: VFD driver serial data
 	m_vfd->data_w(data & 1);
 
 	// d0-d3: VSM data, input mux and SC-01 phoneme lower nibble
-	m_tms6100->add_w(space, 0, data);
+	m_tms6100->add_w(data);
 	m_inp_mux = (m_inp_mux & ~0xf) | (~data & 0xf);
 	m_phoneme = (m_phoneme & ~0xf) | (data & 0xf);
 }
@@ -266,7 +266,7 @@ static INPUT_PORTS_START( k28 )
 	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_KEYBOARD ) PORT_CODE(KEYCODE_DEL_PAD) PORT_NAME(".")
 
 	PORT_START("IN.5")
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_POWER_ON ) PORT_CHANGED_MEMBER(DEVICE_SELF, k28_state, power_on, nullptr)
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_POWER_ON ) PORT_CHANGED_MEMBER(DEVICE_SELF, k28_state, power_on, 0)
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD ) PORT_CODE(KEYCODE_B) PORT_CHAR('B')
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD ) PORT_CODE(KEYCODE_L) PORT_CHAR('L')
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD ) PORT_CODE(KEYCODE_V) PORT_CHAR('V')
@@ -305,7 +305,7 @@ void k28_state::k28(machine_config &config)
 
 	TMS6100(config, m_tms6100, 3.579545_MHz_XTAL / 15); // CLK tied to 8021 ALE pin
 
-	TIMER(config, "on_button").configure_generic(timer_device::expired_delegate());
+	TIMER(config, "on_button").configure_generic(nullptr);
 
 	/* video hardware */
 	MM5445(config, m_vfd).output_cb().set(FUNC(k28_state::vfd_output_w));

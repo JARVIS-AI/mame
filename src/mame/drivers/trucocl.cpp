@@ -45,7 +45,7 @@ Daughterboard: Custom made, plugged in the 2 roms and Z80 mainboard sockets.
 
 
 // TODO: doesn't seem suited to neither irq nor nmi
-WRITE8_MEMBER(trucocl_state::irq_enable_w)
+void trucocl_state::irq_enable_w(uint8_t data)
 {
 	m_irq_mask = (data & 1) ^ 1;
 }
@@ -59,12 +59,12 @@ void trucocl_state::device_timer(emu_timer &timer, device_timer_id id, int param
 		m_maincpu->pulse_input_line(INPUT_LINE_NMI, attotime::zero);
 		break;
 	default:
-		assert_always(false, "Unknown id in trucocl_state::device_timer");
+		throw emu_fatalerror("Unknown id in trucocl_state::device_timer");
 	}
 }
 
 
-WRITE8_MEMBER(trucocl_state::audio_dac_w)
+void trucocl_state::audio_dac_w(uint8_t data)
 {
 	uint8_t *rom = memregion("maincpu")->base();
 	int dac_address = ( data & 0xf0 ) << 8;

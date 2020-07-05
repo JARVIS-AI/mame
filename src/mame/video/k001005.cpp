@@ -1252,7 +1252,7 @@ void k001005_device::swap_buffers( )
 	m_renderer->swap_buffers();
 }
 
-READ32_MEMBER( k001005_device::read )
+uint32_t k001005_device::read(address_space &space, offs_t offset, uint32_t mem_mask)
 {
 	adsp21062_device *dsp = downcast<adsp21062_device*>(&space.device());
 
@@ -1308,13 +1308,13 @@ READ32_MEMBER( k001005_device::read )
 			}
 
 		default:
-			//osd_printf_debug("%s m_r: %08X, %08X\n", machine().describe_context().c_str(), offset, mem_mask);
+			//osd_printf_debug("%s m_r: %08X, %08X\n", machine().describe_context(), offset, mem_mask);
 			break;
 	}
 	return 0;
 }
 
-WRITE32_MEMBER( k001005_device::write )
+void k001005_device::write(address_space &space, offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	adsp21062_device *dsp = downcast<adsp21062_device*>(&space.device());
 
@@ -1322,7 +1322,7 @@ WRITE32_MEMBER( k001005_device::write )
 	{
 		case 0x000:         // FIFO write
 		{
-			//osd_printf_debug("%s K001005 FIFO write: %08X\n", machine().describe_context().c_str(), data);
+			//osd_printf_debug("%s K001005 FIFO write: %08X\n", machine().describe_context(), data);
 			if (m_status != 1 && m_status != 2)
 			{
 				if (m_fifo_write_ptr < 0x400)
@@ -1339,7 +1339,7 @@ WRITE32_MEMBER( k001005_device::write )
 				dsp->set_flag_input(1, ASSERT_LINE);
 			}
 
-		//  osd_printf_debug("%s K001005 FIFO write: %08X\n", machine().describe_context().c_str(), data);
+		//  osd_printf_debug("%s K001005 FIFO write: %08X\n", machine().describe_context(), data);
 			m_fifo[m_fifo_write_ptr] = data;
 			m_fifo_write_ptr++;
 			m_fifo_write_ptr &= 0x7ff;
@@ -1446,7 +1446,7 @@ WRITE32_MEMBER( k001005_device::write )
 			break;
 
 		default:
-			//osd_printf_debug("%s m_w: %08X, %08X, %08X\n", machine().describe_context().c_str(), data, offset, mem_mask);
+			//osd_printf_debug("%s m_w: %08X, %08X, %08X\n", machine().describe_context(), data, offset, mem_mask);
 			break;
 	}
 

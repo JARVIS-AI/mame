@@ -53,14 +53,14 @@ private:
 	required_device<snes_control_port_device> m_ctrl2;
 	required_device<speaker_sound_device> m_speaker;
 
-	DECLARE_READ8_MEMBER(port_a_r);
-	DECLARE_WRITE8_MEMBER(port_a_w);
-	DECLARE_READ8_MEMBER(port_b_r);
-	DECLARE_WRITE8_MEMBER(port_b_w);
-	DECLARE_READ8_MEMBER(port_c_r);
-	DECLARE_WRITE8_MEMBER(port_c_w);
-	DECLARE_READ8_MEMBER(port_d_r);
-	DECLARE_WRITE8_MEMBER(port_d_w);
+	uint8_t port_a_r();
+	void port_a_w(uint8_t data);
+	uint8_t port_b_r();
+	void port_b_w(uint8_t data);
+	uint8_t port_c_r();
+	void port_c_w(uint8_t data);
+	uint8_t port_d_r();
+	void port_d_w(uint8_t data);
 
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
@@ -87,7 +87,7 @@ void uzebox_state::machine_start()
 	m_screen->register_screen_bitmap(m_bitmap);
 
 	if (m_cart->exists())
-		m_maincpu->space(AS_PROGRAM).install_read_handler(0x0000, 0xffff, read8sm_delegate(FUNC(generic_slot_device::read_rom),(generic_slot_device*)m_cart));
+		m_maincpu->space(AS_PROGRAM).install_read_handler(0x0000, 0xffff, read8sm_delegate(m_cart, FUNC(generic_slot_device::read_rom)));
 }
 
 void uzebox_state::machine_reset()
@@ -102,7 +102,7 @@ void uzebox_state::machine_reset()
 }
 
 
-WRITE8_MEMBER(uzebox_state::port_a_w)
+void uzebox_state::port_a_w(uint8_t data)
 {
 	//  xxxx ----   NC
 	//  ---- x---   SNES controller clk
@@ -124,12 +124,12 @@ WRITE8_MEMBER(uzebox_state::port_a_w)
 	m_port_a = (data & 0x0c) | (m_port_a & 0x03);
 }
 
-READ8_MEMBER(uzebox_state::port_a_r)
+uint8_t uzebox_state::port_a_r()
 {
 	return  m_port_a | 0xf0;
 }
 
-WRITE8_MEMBER(uzebox_state::port_b_w)
+void uzebox_state::port_b_w(uint8_t data)
 {
 	//  xxx- ----   SDCard
 	//  ---x ----   AD725 CE
@@ -143,25 +143,25 @@ WRITE8_MEMBER(uzebox_state::port_b_w)
 		{
 			line_update();
 
-			uint32_t cycles = (uint32_t)(m_maincpu->get_elapsed_cycles() - m_line_start_cycles);
+			uint32_t cycles = (uint32_t)(machine().time().as_ticks(MASTER_CLOCK) - m_line_start_cycles);
 			if (cycles < 1000 && m_vpos >= 448)
 				m_vpos = INTERLACED ? ((m_vpos ^ 0x01) & 0x01) : 0;
 			else if (cycles > 1000)
 				m_vpos += 2;
 
-			m_line_start_cycles = m_maincpu->get_elapsed_cycles();
+			m_line_start_cycles = machine().time().as_ticks(MASTER_CLOCK);
 			m_line_pos_cycles = 0;
 		}
 
 	m_port_b = data;
 }
 
-READ8_MEMBER(uzebox_state::port_b_r)
+uint8_t uzebox_state::port_b_r()
 {
 	return m_port_b;
 }
 
-WRITE8_MEMBER(uzebox_state::port_c_w)
+void uzebox_state::port_c_w(uint8_t data)
 {
 	//  xx-- ----   blue
 	//  --xx x---   green
@@ -171,12 +171,12 @@ WRITE8_MEMBER(uzebox_state::port_c_w)
 	m_port_c = data;
 }
 
-READ8_MEMBER(uzebox_state::port_c_r)
+uint8_t uzebox_state::port_c_r()
 {
 	return m_port_c;
 }
 
-WRITE8_MEMBER(uzebox_state::port_d_w)
+void uzebox_state::port_d_w(uint8_t data)
 {
 	//  x--- ----   sound
 	//  -x-- ----   SDCard CS
@@ -191,7 +191,7 @@ WRITE8_MEMBER(uzebox_state::port_d_w)
 	m_port_d = data;
 }
 
-READ8_MEMBER(uzebox_state::port_d_r)
+uint8_t uzebox_state::port_d_r()
 {
 	return m_port_d;
 }
@@ -236,7 +236,7 @@ INPUT_PORTS_END
 
 void uzebox_state::line_update()
 {
-	uint32_t cycles = (uint32_t)(m_maincpu->get_elapsed_cycles() - m_line_start_cycles) / 2;
+	uint32_t cycles = (uint32_t)(machine().time().as_ticks(MASTER_CLOCK) - m_line_start_cycles) / 2;
 	rgb_t color = rgb_t(pal3bit(m_port_c >> 0), pal3bit(m_port_c >> 3), pal2bit(m_port_c >> 6));
 
 	for (uint32_t x = m_line_pos_cycles; x < cycles; x++)
@@ -268,7 +268,7 @@ DEVICE_IMAGE_LOAD_MEMBER(uzebox_state::cart_load)
 		std::vector<uint8_t> data(size);
 		image.fread(&data[0], size);
 
-		if (!strncmp((const char*)&data[0], "UZEBOX", 6))
+		if (image.is_filetype("uze"))
 			memcpy(m_cart->get_rom_base(), &data[0x200], size - 0x200);
 		else
 			memcpy(m_cart->get_rom_base(), &data[0], size);
@@ -307,7 +307,7 @@ void uzebox_state::uzebox(machine_config &config)
 
 	GENERIC_CARTSLOT(config, m_cart, generic_plain_slot, "uzebox", "bin,uze");
 	m_cart->set_must_be_loaded(true);
-	m_cart->set_device_load(FUNC(uzebox_state::cart_load), this);
+	m_cart->set_device_load(FUNC(uzebox_state::cart_load));
 
 	SNES_CONTROL_PORT(config, m_ctrl1, snes_control_port_devices, "joypad");
 	SNES_CONTROL_PORT(config, m_ctrl2, snes_control_port_devices, "joypad");

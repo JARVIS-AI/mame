@@ -129,7 +129,7 @@ void rf5c400_device::envelope_tables::init(uint32_t clock)
 rf5c400_device::rf5c400_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, RF5C400, tag, owner, clock)
 	, device_sound_interface(mconfig, *this)
-	, device_rom_interface(mconfig, *this, 25, ENDIANNESS_LITTLE, 16)
+	, device_rom_interface(mconfig, *this)
 	, m_stream(nullptr)
 	, m_env_tables()
 {
@@ -193,7 +193,7 @@ void rf5c400_device::device_start()
 void rf5c400_device::sound_stream_update(sound_stream &stream, stream_sample_t **inputs, stream_sample_t **outputs, int samples)
 {
 	int i, ch;
-	uint32_t end, loop;
+	uint64_t end, loop;
 	uint64_t pos;
 	uint8_t vol, lvol, rvol, type;
 	uint8_t env_phase;
@@ -299,7 +299,7 @@ void rf5c400_device::sound_stream_update(sound_stream &stream, stream_sample_t *
 			if ((pos>>16) > end)
 			{
 				pos -= loop<<16;
-				pos &= 0xFFFFFF0000U;
+				pos &= 0xFFFFFF0000ULL;
 			}
 
 		}
@@ -318,11 +318,11 @@ void rf5c400_device::rom_bank_updated()
 
 /*****************************************************************************/
 
-READ16_MEMBER( rf5c400_device::rf5c400_r )
+uint16_t rf5c400_device::rf5c400_r(offs_t offset, uint16_t mem_mask)
 {
 	if (offset < 0x400)
 	{
-		//osd_printf_debug("%s:rf5c400_r: %08X, %08X\n", machine().describe_context().c_str(), offset, mem_mask);
+		//osd_printf_debug("%s:rf5c400_r: %08X, %08X\n", machine().describe_context(), offset, mem_mask);
 
 		switch(offset)
 		{
@@ -343,7 +343,7 @@ READ16_MEMBER( rf5c400_device::rf5c400_r )
 
 			default:
 			{
-				//osd_printf_debug("%s:rf5c400_r: %08X, %08X\n", machine().describe_context().c_str(), offset, mem_mask);
+				//osd_printf_debug("%s:rf5c400_r: %08X, %08X\n", machine().describe_context(), offset, mem_mask);
 				return 0;
 			}
 		}
@@ -364,7 +364,7 @@ READ16_MEMBER( rf5c400_device::rf5c400_r )
 	}
 }
 
-WRITE16_MEMBER( rf5c400_device::rf5c400_w )
+void rf5c400_device::rf5c400_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (offset < 0x400)
 	{
@@ -458,11 +458,11 @@ WRITE16_MEMBER( rf5c400_device::rf5c400_w )
 
 			default:
 			{
-				//osd_printf_debug("%s:rf5c400_w: %08X, %08X, %08X\n", machine().describe_context().c_str(), data, offset, mem_mask);
+				//osd_printf_debug("%s:rf5c400_w: %08X, %08X, %08X\n", machine().describe_context(), data, offset, mem_mask);
 				break;
 			}
 		}
-		//osd_printf_debug("%s:rf5c400_w: %08X, %08X, %08X\n", machine().describe_context().c_str(), data, offset, mem_mask);
+		//osd_printf_debug("%s:rf5c400_w: %08X, %08X, %08X\n", machine().describe_context(), data, offset, mem_mask);
 	}
 	else
 	{

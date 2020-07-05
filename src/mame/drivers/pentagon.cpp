@@ -36,12 +36,12 @@ private:
 		TIMER_IRQ_OFF
 	};
 
-	DECLARE_WRITE8_MEMBER(pentagon_port_7ffd_w);
-	DECLARE_WRITE8_MEMBER(pentagon_scr_w);
-	DECLARE_WRITE8_MEMBER(pentagon_scr2_w);
-	DECLARE_READ8_MEMBER(beta_neutral_r);
-	DECLARE_READ8_MEMBER(beta_enable_r);
-	DECLARE_READ8_MEMBER(beta_disable_r);
+	void pentagon_port_7ffd_w(uint8_t data);
+	void pentagon_scr_w(offs_t offset, uint8_t data);
+	void pentagon_scr2_w(offs_t offset, uint8_t data);
+	uint8_t beta_neutral_r(offs_t offset);
+	uint8_t beta_enable_r(offs_t offset);
+	uint8_t beta_disable_r(offs_t offset);
 	DECLARE_MACHINE_RESET(pentagon);
 	DECLARE_VIDEO_START(pentagon);
 	INTERRUPT_GEN_MEMBER(pentagon_interrupt);
@@ -95,7 +95,7 @@ void pentagon_state::pentagon_update_memory()
 	m_bank1->set_base(&m_p_ram[0x10000 + (m_ROMSelection<<14)]);
 }
 
-WRITE8_MEMBER(pentagon_state::pentagon_port_7ffd_w)
+void pentagon_state::pentagon_port_7ffd_w(uint8_t data)
 {
 	/* disable paging */
 	if (m_port_7ffd_data & 0x20)
@@ -111,14 +111,14 @@ WRITE8_MEMBER(pentagon_state::pentagon_port_7ffd_w)
 	pentagon_update_memory();
 }
 
-WRITE8_MEMBER(pentagon_state::pentagon_scr_w)
+void pentagon_state::pentagon_scr_w(offs_t offset, uint8_t data)
 {
 	spectrum_UpdateScreenBitmap();
 
 	*((uint8_t*)m_bank2->base() + offset) = data;
 }
 
-WRITE8_MEMBER(pentagon_state::pentagon_scr2_w)
+void pentagon_state::pentagon_scr2_w(offs_t offset, uint8_t data)
 {
 	if ((m_port_7ffd_data & 0x0f) == 0x0f || (m_port_7ffd_data & 0x0f) == 5)
 		spectrum_UpdateScreenBitmap();
@@ -137,7 +137,7 @@ void pentagon_state::device_timer(emu_timer &timer, device_timer_id id, int para
 		irq_off(ptr, param);
 		break;
 	default:
-		assert_always(false, "Unknown id in pentagon_state::device_timer");
+		throw emu_fatalerror("Unknown id in pentagon_state::device_timer");
 	}
 }
 
@@ -157,30 +157,36 @@ INTERRUPT_GEN_MEMBER(pentagon_state::pentagon_interrupt)
 	timer_set(attotime::from_ticks(179, XTAL(14'000'000) / 4), TIMER_IRQ_ON, 0);
 }
 
-READ8_MEMBER(pentagon_state::beta_neutral_r)
+uint8_t pentagon_state::beta_neutral_r(offs_t offset)
 {
 	return m_program->read_byte(offset);
 }
 
-READ8_MEMBER(pentagon_state::beta_enable_r)
+uint8_t pentagon_state::beta_enable_r(offs_t offset)
 {
-	if(m_ROMSelection == 1) {
-		m_ROMSelection = 3;
-		if (m_beta->started()) {
-			m_beta->enable();
-			m_bank1->set_base(memregion("beta:beta")->base());
+	if (!(machine().side_effects_disabled())) {
+		if (m_ROMSelection == 1) {
+			m_ROMSelection = 3;
+			if (m_beta->started()) {
+				m_beta->enable();
+				m_bank1->set_base(memregion("beta:beta")->base());
+			}
 		}
 	}
+
 	return m_program->read_byte(offset + 0x3d00);
 }
 
-READ8_MEMBER(pentagon_state::beta_disable_r)
+uint8_t pentagon_state::beta_disable_r(offs_t offset)
 {
-	if (m_beta->started() && m_beta->is_active()) {
-		m_ROMSelection = BIT(m_port_7ffd_data, 4);
-		m_beta->disable();
-		m_bank1->set_base(&m_p_ram[0x10000 + (m_ROMSelection<<14)]);
+	if (!(machine().side_effects_disabled())) {
+		if (m_beta->started() && m_beta->is_active()) {
+			m_ROMSelection = BIT(m_port_7ffd_data, 4);
+			m_beta->disable();
+			m_bank1->set_base(&m_p_ram[0x10000 + (m_ROMSelection << 14)]);
+		}
 	}
+
 	return m_program->read_byte(offset + 0x4000);
 }
 
@@ -219,8 +225,8 @@ MACHINE_RESET_MEMBER(pentagon_state,pentagon)
 	m_program = &m_maincpu->space(AS_PROGRAM);
 	m_p_ram = memregion("maincpu")->base();
 
-	m_program->install_write_handler(0x4000, 0x5aff, write8_delegate(FUNC(pentagon_state::pentagon_scr_w), this));
-	m_program->install_write_handler(0xc000, 0xdaff, write8_delegate(FUNC(pentagon_state::pentagon_scr2_w), this));
+	m_program->install_write_handler(0x4000, 0x5aff, write8sm_delegate(*this, FUNC(pentagon_state::pentagon_scr_w)));
+	m_program->install_write_handler(0xc000, 0xdaff, write8sm_delegate(*this, FUNC(pentagon_state::pentagon_scr2_w)));
 
 	if (m_beta->started())
 	{
@@ -305,6 +311,7 @@ void pentagon_state::pentagon(machine_config &config)
 	config.device_remove("exp");
 
 	SOFTWARE_LIST(config, "cass_list_pen").set_original("pentagon_cass");
+	SOFTWARE_LIST(config, "betadisc_list").set_original("spectrum_betadisc_flop");
 }
 
 void pentagon_state::pent1024(machine_config &config)

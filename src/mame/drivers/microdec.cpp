@@ -52,12 +52,12 @@ public:
 	void init_microdec();
 
 private:
-	DECLARE_READ8_MEMBER(portf5_r);
-	DECLARE_READ8_MEMBER(portf6_r);
-	DECLARE_WRITE8_MEMBER(portf6_w);
-	DECLARE_READ8_MEMBER(portf7_r);
-	DECLARE_WRITE8_MEMBER(portf7_w);
-	DECLARE_WRITE8_MEMBER(portf8_w);
+	uint8_t portf5_r();
+	uint8_t portf6_r();
+	void portf6_w(uint8_t data);
+	uint8_t portf7_r();
+	void portf7_w(uint8_t data);
+	void portf8_w(uint8_t data);
 
 	void microdec_io(address_map &map);
 	void microdec_mem(address_map &map);
@@ -78,7 +78,7 @@ d0-2 : motor on signals from f8
 d3   : ack (cent)
 d4   : ready (fdd)
 d5   : diag jumper (md3 only) */
-READ8_MEMBER( microdec_state::portf5_r )
+uint8_t microdec_state::portf5_r()
 {
 	m_fdc->set_ready_line_connected(m_fdc_rdy);
 
@@ -87,14 +87,14 @@ READ8_MEMBER( microdec_state::portf5_r )
 }
 
 // disable eprom
-READ8_MEMBER( microdec_state::portf6_r )
+uint8_t microdec_state::portf6_r()
 {
 	membank("bankr0")->set_entry(0); // point at ram
 	return 0xff;
 }
 
 // TC pin on fdc
-READ8_MEMBER( microdec_state::portf7_r )
+uint8_t microdec_state::portf7_r()
 {
 	m_fdc->tc_w(1);
 	m_fdc->tc_w(0);
@@ -102,13 +102,13 @@ READ8_MEMBER( microdec_state::portf7_r )
 }
 
 // enable eprom
-WRITE8_MEMBER( microdec_state::portf6_w )
+void microdec_state::portf6_w(uint8_t data)
 {
 	membank("bankr0")->set_entry(1); // point at rom
 }
 
 // sets up VFO stuff
-WRITE8_MEMBER( microdec_state::portf7_w )
+void microdec_state::portf7_w(uint8_t data)
 {
 	m_fdc_rdy = BIT(data,2);
 }
@@ -116,7 +116,7 @@ WRITE8_MEMBER( microdec_state::portf7_w )
 /*
 d0-2 : motor on for drive sockets
 d3   : precomp */
-WRITE8_MEMBER( microdec_state::portf8_w )
+void microdec_state::portf8_w(uint8_t data)
 {
 	m_portf8 = data & 7;
 	/* code for motor on per drive goes here */
@@ -145,16 +145,16 @@ void microdec_state::microdec_io(address_map &map)
 	map(0xfa, 0xfb).m(m_fdc, FUNC(upd765a_device::map));
 	map(0xfc, 0xfd).rw("uart1", FUNC(i8251_device::read), FUNC(i8251_device::write));
 	map(0xfe, 0xff).rw("uart2", FUNC(i8251_device::read), FUNC(i8251_device::write));
-	// AM_RANGE(0xf0, 0xf3) 8253 PIT (md3 only) used as a baud rate generator for serial ports
-	// AM_RANGE(0xf4, 0xf4) Centronics data
-	// AM_RANGE(0xf5, 0xf5) motor check (md1/2)
-	// AM_RANGE(0xf5, 0xf5) Centronics status (md3) read bit 3 (ack=1); read bit 4 (busy=1); write bit 7 (stb=0)
-	// AM_RANGE(0xf6, 0xf6) rom enable (w=enable; r=disable)
-	// AM_RANGE(0xf7, 0xf7) VFO Count set
-	// AM_RANGE(0xf8, 0xf8) Motor and Shift control
-	// AM_RANGE(0xfa, 0xfb) uPD765C fdc FA=status; FB=data
-	// AM_RANGE(0xfc, 0xfd) Serial Port 1 (terminal) FC=data FD=status
-	// AM_RANGE(0xfe, 0xff) Serial Port 2 (printer) FE=data FF=status
+	// map(0xf0, 0xf3) 8253 PIT (md3 only) used as a baud rate generator for serial ports
+	// map(0xf4, 0xf4) Centronics data
+	// map(0xf5, 0xf5) motor check (md1/2)
+	// map(0xf5, 0xf5) Centronics status (md3) read bit 3 (ack=1); read bit 4 (busy=1); write bit 7 (stb=0)
+	// map(0xf6, 0xf6) rom enable (w=enable; r=disable)
+	// map(0xf7, 0xf7) VFO Count set
+	// map(0xf8, 0xf8) Motor and Shift control
+	// map(0xfa, 0xfb) uPD765C fdc FA=status; FB=data
+	// map(0xfc, 0xfd) Serial Port 1 (terminal) FC=data FD=status
+	// map(0xfe, 0xff) Serial Port 2 (printer) FE=data FF=status
 }
 
 /* Input ports */
@@ -167,6 +167,8 @@ INPUT_PORTS_END
 
 void microdec_state::machine_start()
 {
+	save_item(NAME(m_portf8));
+	save_item(NAME(m_fdc_rdy));
 }
 
 void microdec_state::machine_reset()
@@ -263,5 +265,5 @@ ROM_END
 /* Driver */
 
 //    YEAR  NAME  PARENT  COMPAT  MACHINE   INPUT     CLASS           INIT           COMPANY           FULLNAME               FLAGS
-COMP( 1982, md2,  0,      0,      microdec, microdec, microdec_state, init_microdec, "Morrow Designs", "Micro Decision MD-2", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW )
-COMP( 1982, md3,  md2,    0,      microdec, microdec, microdec_state, init_microdec, "Morrow Designs", "Micro Decision MD-3", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW )
+COMP( 1982, md2,  0,      0,      microdec, microdec, microdec_state, init_microdec, "Morrow Designs", "Micro Decision MD-2", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW | MACHINE_SUPPORTS_SAVE )
+COMP( 1982, md3,  md2,    0,      microdec, microdec, microdec_state, init_microdec, "Morrow Designs", "Micro Decision MD-3", MACHINE_NOT_WORKING | MACHINE_NO_SOUND_HW | MACHINE_SUPPORTS_SAVE )

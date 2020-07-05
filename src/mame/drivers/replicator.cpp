@@ -186,8 +186,8 @@ private:
 	required_device<hd44780_device> m_lcdc;
 	required_device<dac_bit_interface> m_dac;
 
-	DECLARE_READ8_MEMBER(port_r);
-	DECLARE_WRITE8_MEMBER(port_w);
+	uint8_t port_r(offs_t offset);
+	void port_w(offs_t offset, uint8_t data);
 	virtual void machine_reset() override;
 	void replicator_palette(palette_device &palette) const;
 	void replicator_data_map(address_map &map);
@@ -199,7 +199,7 @@ void replicator_state::machine_start()
 {
 }
 
-READ8_MEMBER(replicator_state::port_r)
+uint8_t replicator_state::port_r(offs_t offset)
 {
 	switch( offset )
 	{
@@ -284,7 +284,7 @@ READ8_MEMBER(replicator_state::port_r)
 	return 0;
 }
 
-WRITE8_MEMBER(replicator_state::port_w)
+void replicator_state::port_w(offs_t offset, uint8_t data)
 {
 	switch( offset )
 	{
@@ -354,18 +354,11 @@ WRITE8_MEMBER(replicator_state::port_w)
 
 			if(changed & LCD_STROBE){
 				if (data & LCD_STROBE){ //STROBE positive edge
-					bool RS = (shift_register_value >> 1) & 1;
-					bool RW = (shift_register_value >> 2) & 1;
-					bool enable = (shift_register_value >> 3) & 1;
-					uint8_t lcd_data = shift_register_value & 0xF0;
-
-					if (enable && RW==0){
-						if (RS==0){
-							m_lcdc->control_write(lcd_data);
-						} else {
-							m_lcdc->data_write(lcd_data);
-						}
-					}
+					logerror("LCD shift register = %02X\n", shift_register_value);
+					m_lcdc->rs_w(BIT(shift_register_value, 1));
+					m_lcdc->rw_w(BIT(shift_register_value, 2));
+					m_lcdc->e_w(BIT(shift_register_value, 3));
+					m_lcdc->db_w(shift_register_value & 0xF0);
 				}
 			}
 			m_port_c = data;
